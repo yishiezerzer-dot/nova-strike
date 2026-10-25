@@ -40,6 +40,9 @@ try{const raw=localStorage.getItem(SAVEKEY),raw2=localStorage.getItem(V2KEY);
   for(const k of['unlocked','stars','ach','best','kills','bosses','deaths','maxLevel','muted','qual'])if(o[k]!==undefined)SV[k]=o[k];SV.gems=(o.gems||0)+refund;migrateNote={title:'SAVE UPGRADED',sub:'New Hangar. '+refund+' gems refunded for old upgrades',t:0};}}
 }catch(e){SV=defSave()}
 const save=()=>{try{localStorage.setItem(SAVEKEY,JSON.stringify(SV))}catch(e){}};save();
+// wipe all progress but keep sound and display settings; SV is mutated in place so every reference stays valid
+const KEEP=['muted','qual','dmgNum','shake','music','sfx'];
+function resetAll(){const k={};for(const n of KEEP)k[n]=SV[n];for(const n in SV)delete SV[n];Object.assign(SV,defSave(),k);try{localStorage.removeItem(V2KEY);localStorage.removeItem(OLDKEY)}catch(e){}save();R=null;rngF=null}
 const SHOP=[
  {k:'power',name:'Power Core',desc:'+3% damage',max:10,base:40,g:1.25,col:'#ff4fd8'},
  {k:'shots',name:'Multi Barrel',desc:'Start every run with +1 weapon stack',max:1,base:200,g:2,col:'#5fe8ff'},
@@ -713,11 +716,22 @@ function settingRows(x,y,w,rh){const rows=[
  ['GRAPHICS',qualAuto?'AUTO ('+QNAMES[QUAL]+')':QNAMES[QUAL],cycleQual],
  ['DAMAGE NUMBERS',SV.dmgNum?'ON':'OFF',()=>{SV.dmgNum=!SV.dmgNum}]];
  rows.forEach((r,i)=>{const yy=y+i*rh,h=rh-8*S;button(x,yy,w,h,'',()=>{r[2]();save()},{col:'#5fe8ff'});txt(r[0],x+16*S,yy+h/2,12.5,'#ffffff','left','900');txt(r[1],x+w-16*S,yy+h/2,12.5,r[1]==='OFF'?'#8f88c0':'#4dffb0','right','900')});return y+rows.length*rh}
-let setBack='title';function screenSettings(){cx.fillStyle='rgba(6,3,20,0.7)';cx.fillRect(0,0,W,H);const top=safe.t+16;txt('SETTINGS',W/2,top+22*S,26,'#5fe8ff','center','900',14);
- const w=Math.min(W-safe.l-safe.r-40*S,340*S),x=(W-w)/2;let y=settingRows(x,top+60*S,w,56*S)+6*S;
- button(x,y,w,44*S,'SHOW TUTORIAL HINTS AGAIN',()=>{SV.tut={};save();toasts.push({title:'TUTORIAL HINTS RESET',sub:'They show again as you play',t:0})},{col:'#a9a2d8',sz:11.5});
- txt('Speaker icon or M mutes everything',W/2,y+64*S,10,'#8f88c0','center','700');
- const back=()=>{st=setBack};button(W/2-100*S,H-safe.b-66*S,200*S,48*S,'BACK',back,{def:1});escAction=back;topIcons()}
+let setBack='title',rstStep=0;function screenSettings(){cx.fillStyle='rgba(6,3,20,0.7)';cx.fillRect(0,0,W,H);const top=safe.t+16;txt('SETTINGS',W/2,top+22*S,26,'#5fe8ff','center','900',14);
+ const w=Math.min(W-safe.l-safe.r-40*S,340*S),x=(W-w)/2;
+ if(rstStep){screenReset(x,top,w);return}
+ let y=settingRows(x,top+60*S,w,52*S)+6*S;
+ button(x,y,w,42*S,'SHOW TUTORIAL HINTS AGAIN',()=>{SV.tut={};save();toasts.push({title:'TUTORIAL HINTS RESET',sub:'They show again as you play',t:0})},{col:'#a9a2d8',sz:11.5});
+ if(setBack!=='over')button(x,y+50*S,w,42*S,'RESET ALL DATA',()=>{rstStep=1},{col:'#ff5a7a',sz:11.5});
+ txt('Speaker icon or M mutes everything',W/2,y+(setBack!=='over'?112:64)*S,10,'#8f88c0','center','700');
+ const back=()=>{rstStep=0;st=setBack};button(W/2-100*S,H-safe.b-66*S,200*S,48*S,'BACK',back,{def:1});escAction=back;topIcons()}
+// two confirmations before anything is erased
+function screenReset(x,top,w){const two=rstStep===2,y=top+H*0.12,cancel=()=>{rstStep=0};
+ txt(two?'ARE YOU SURE?':'RESET ALL DATA',W/2,y,two?24:22,'#ff5a7a','center','900',14);
+ const L=two?['This is your last chance.','Everything goes: '+fmtN(SV.gems)+' gems, '+(SV.wins||0)+' campaign wins.','This CANNOT be undone.']:['This erases gems, upgrades, weapons, ships,','campaign progress, Threat levels, awards,','stats and Daily Sortie records.','Sound and display settings are kept.','This cannot be undone.'];
+ L.forEach((l,i)=>txt(l,W/2,y+40*S+i*19*S,11.5,i===L.length-1?'#ff5a7a':'#c9c2f0','center',i===L.length-1?'900':'700'));
+ const by=y+56*S+L.length*19*S;button(x,by,w,48*S,two?'KEEP MY DATA':'CANCEL',cancel,{solid:1,def:1});
+ button(x,by+62*S,w,44*S,two?'ERASE EVERYTHING':'YES, RESET',()=>{if(!two){rstStep=2;return}rstStep=0;resetAll();st='title';toasts.push({title:'ALL DATA ERASED',sub:'Starting fresh',t:0})},{col:'#ff5a7a',sz:12});
+ escAction=cancel;topIcons()}
 function controlHint(y){if(isTouch()){txt('Drag anywhere to fly. Firing is automatic.',W/2,y,11.5,'#b9b2ff','center','700');txt('Tap BOMB to clear the screen.',W/2,y+17*S,11.5,'#b9b2ff','center','700')}
  else{txt('Mouse or WASD to fly. Shift for precise mode.',W/2,y,11.5,'#b9b2ff','center','700');txt('Right click or Space to bomb. F fullscreen.',W/2,y+17*S,11.5,'#b9b2ff','center','700')}}
 function screenTitle(){logo(safe.t+H*0.2);txt('A NEON SPACE SHOOTER',W/2,safe.t+H*0.2+86*S,11,'#a9a2d8','center','800');
@@ -927,7 +941,7 @@ addEventListener('blur',()=>{keys={}});
 let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(resize,120)});document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
 // ---------- test hook: only active for a local file opened with #devtest
 const API={ts:1,god,get st(){return st},SV,get R(){return R},get LV(){return LV},get ship(){return ship},get boss(){return boss},get enemies(){return enemies},get mouse(){return mouse},
- newRun,openHangar,launchNext,get hangarCtx(){return hangarCtx},get hangarTab(){return hangarTab},set hangarTab(v){hangarTab=v},bomb,gameOver,forceDie(){god.on=false;ship.inv=0;ship.shield=0;ship.hull=1;hurt()},get btns(){return btns},get OX(){return OX},get focus(){return focus},hurt,dropAt,dropW,curShots,addEnemy,get codexId(){return codexId},set codexId(v){codexId=v},set wSub(v){wSub=v},get pickups(){return pickups},spawnBoss,cost,wCost,SHOP,basePow,baseShots,priW,collectAll,get eb(){return eb},set eb(v){eb=v},get beams(){return beams},heat,shipCircles,firePow,refPow,curPow,rateMul,PERKS,takePerk,levelClear,killEnemy,newDaily,dailyDef,combo,startLevel};
+ newRun,openHangar,launchNext,get hangarCtx(){return hangarCtx},get hangarTab(){return hangarTab},set hangarTab(v){hangarTab=v},bomb,gameOver,forceDie(){god.on=false;ship.inv=0;ship.shield=0;ship.hull=1;hurt()},get btns(){return btns},get OX(){return OX},get focus(){return focus},hurt,dropAt,dropW,curShots,addEnemy,get codexId(){return codexId},set codexId(v){codexId=v},set wSub(v){wSub=v},get pickups(){return pickups},spawnBoss,cost,wCost,SHOP,basePow,baseShots,priW,collectAll,get eb(){return eb},set eb(v){eb=v},get beams(){return beams},heat,shipCircles,firePow,refPow,curPow,rateMul,PERKS,takePerk,levelClear,killEnemy,newDaily,dailyDef,combo,startLevel,resetAll,get rstStep(){return rstStep}};
 if(location.protocol==='file:'&&location.hash==='#devtest')window.__ns=API;
 if(typeof SV.qual==='number'&&SV.qual>=0){QUAL=SV.qual;qualAuto=false}
 resize();requestAnimationFrame(frame);
