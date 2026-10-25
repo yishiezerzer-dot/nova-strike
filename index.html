@@ -29,7 +29,7 @@ const defSave=()=>({ver:4,gems:0,unlocked:1,stars:{},up:{power:0,shots:0,rate:0,
 let SV,migrateNote=null;
 function mergeSave(o){const d=defSave();const r=Object.assign(d,o);r.up=Object.assign(defSave().up,o.up||{});r.w=Object.assign(defSave().w,o.w||{});r.hulls=Object.assign({striker:1},o.hulls||{});r.ver=3;if(!o.tut)r.tut=(o.maxLevel||0)>=3?{move:1,gem:1,p:1,P:1,'+':1,W:1,S:1,B:1,H:1}:{};if(!r.w[r.pri])r.pri='blaster';if(r.sec!=='none'&&!r.w[r.sec])r.sec='none';if(!r.hulls[r.hull])r.hull='striker';if((o.ver||0)<4)capSave(r);r.ver=4;return r}
 // v4 caps permanent upgrades; levels above the new caps are refunded at the old v3 prices
-const CAP4={power:10,shots:2,rate:6,hull:3,shield:3,bomb:2,drone:2,magnet:4,greed:5},OLD3={power:[30,34,1.25],shots:[3,140,2],rate:[8,50,1.4],hull:[5,90,1.7],shield:[3,150,1.8],bomb:[3,110,1.7],drone:[2,260,1.8],magnet:[5,35,1.5],greed:[5,120,1.6]};
+const CAP4={power:10,shots:1,rate:6,hull:3,shield:3,bomb:2,drone:2,magnet:4,greed:5},OLD3={power:[30,34,1.25],shots:[3,140,2],rate:[8,50,1.4],hull:[5,90,1.7],shield:[3,150,1.8],bomb:[3,110,1.7],drone:[2,260,1.8],magnet:[5,35,1.5],greed:[5,120,1.6]};
 function capSave(r){let ref=0;for(const k in CAP4){const l=r.up[k]||0,o=OLD3[k];for(let i=CAP4[k];i<l;i++)ref+=Math.round(o[1]*Math.pow(o[2],Math.min(i,o[0]))*Math.pow(Math.max(o[2],1.3)*1.05,Math.max(0,i-o[0])));r.up[k]=Math.min(l,CAP4[k])}
  const UL={blaster:0,laser:300,plasma:450,rail:650,flak:550,flame:800,missile:220,chain:380,blades:420,mines:360,grav:700,discs:500};for(const id in r.w){const l=r.w[id]||0;for(let i=5;i<l;i++)ref+=Math.round(Math.max(150,UL[id]||0)*0.55*Math.pow(1.6,i));if(l>5)r.w[id]=5}
  r.gems=(r.gems||0)+ref;if(ref)migrateNote={title:'BALANCE UPDATE',sub:'Upgrades now have caps. '+ref+' gems refunded',t:0}}
@@ -41,10 +41,10 @@ try{const raw=localStorage.getItem(SAVEKEY),raw2=localStorage.getItem(V2KEY);
 }catch(e){SV=defSave()}
 const save=()=>{try{localStorage.setItem(SAVEKEY,JSON.stringify(SV))}catch(e){}};save();
 const SHOP=[
- {k:'power',name:'Power Core',desc:'+5% damage',max:10,base:60,g:1.28,col:'#ff4fd8'},
- {k:'shots',name:'Multi Barrel',desc:'+1 starting weapon stack',max:2,base:220,g:2.2,col:'#5fe8ff'},
- {k:'rate',name:'Rapid Coils',desc:'+5% fire rate',max:6,base:70,g:1.35,col:'#ffb13b'},
- {k:'hull',name:'Hull Plating',desc:'+1 max hull',max:3,base:120,g:1.8,col:'#7cff6b'},
+ {k:'power',name:'Power Core',desc:'+3% damage',max:10,base:40,g:1.25,col:'#ff4fd8'},
+ {k:'shots',name:'Multi Barrel',desc:'Start every run with +1 weapon stack',max:1,base:200,g:2,col:'#5fe8ff'},
+ {k:'rate',name:'Rapid Coils',desc:'+3% fire rate',max:6,base:50,g:1.3,col:'#ffb13b'},
+ {k:'hull',name:'Hull Plating',desc:'+1 max hull',max:3,base:90,g:1.7,col:'#7cff6b'},
  {k:'shield',name:'Barrier',desc:'Shield each sector, recharges',max:3,base:150,g:1.8,col:'#8fd3ff'},
  {k:'bomb',name:'Nova Bombs',desc:'+1 bomb each sector',max:2,base:110,g:1.7,col:'#ff6a4d'},
  {k:'drone',name:'Wingman',desc:'+1 escort drone',max:2,base:260,g:1.8,col:'#b48cff'},
@@ -70,7 +70,7 @@ const WEAP={
 const CMB={blaster:['missile','BARRAGE','+1 missile, missiles fire 30% faster'],laser:['chain','TESLA LANCE','Chain zaps 40% faster with 2 more jumps'],plasma:['blades','TIDAL EDGE','Blades deal 50% more and cut bullets'],rail:['mines','DETONATOR','Mines deal 60% more with a bigger blast'],flak:['discs','SHRAPNEL STORM','+1 disc with 3 more bounces'],flame:['grav','FIRESTORM','Wells last 50% longer and burn 60% hotter']};
 // v4 per-weapon damage normalisation (see sim/dps.js): effective DPS within ~±15% per slot
 const WB={blaster:1.46,laser:1.1,plasma:0.52,rail:0.61,flak:1.95,flame:0.76,missile:1.16,chain:0.83,blades:1.85,mines:0.63,grav:1.29,discs:0.51};
-const WMAX=5,WVIS=l=>Math.min(l,8),wMul=l=>1+0.1*(Math.min(WMAX,Math.max(1,l))-1),wCost=id=>{const l=SV.w[id];return l?Math.round(Math.max(150,WEAP[id].unlock)*0.55*Math.pow(1.6,l)):WEAP[id].unlock};
+const WMAX=5,WVIS=l=>Math.min(l,8),wMul=l=>1+0.05*(Math.min(WMAX,Math.max(1,l))-1),wCost=id=>{const l=SV.w[id];return l?Math.round(Math.max(150,WEAP[id].unlock)*0.55*Math.pow(1.6,l)):WEAP[id].unlock};
 const HULLS={
  striker:{name:'Striker',desc:'Balanced all-rounder',cost:0,hull:0,bomb:0,rate:1,speed:1,hb:1,col:'#5fe8ff',acc:'#ff4fd8'},
  bulwark:{name:'Bulwark',desc:'+2 hull, +1 bomb, slower, bigger',cost:600,hull:2,bomb:1,rate:1,speed:0.85,hb:1.15,col:'#7cff6b',acc:'#ffb13b'},
@@ -188,17 +188,19 @@ const THR=['Normal campaign','Enemy bullets 10% faster','Bosses are ELITE, more 
 const ckOf=n=>n>=11?11:n>=6?6:1,actOf=n=>n<=5?0:n<=10?1:2;
 const HPG=1.25;const hpMul=n=>Math.pow(HPG,n-1);
 // rank rises when your firepower is ahead of the curve for this sector (never below 1, so struggling is not punished)
-const firePow=()=>curPow()*wMul(priLvl())*rateMul()*Math.pow(curShots(),0.9)*(1+0.12*PK('crit'))*(1+0.2*(Math.min(2,U('drone'))+PK('drone')));
+const firePow=()=>curPow()*wMul(priLvl())*rateMul()*Math.pow(curShots(),0.9)*(1+0.12*PK('crit'))*(1+0.12*(Math.min(2,U('drone'))+PK('drone')));
 const refPow=n=>Math.pow(Math.min(10,1+1.1*(n-1)),0.9)*(1.15+0.05*(n-1));
-function setRank(){LV.rank=clamp(Math.sqrt(firePow()/refPow(LV.n)),1,1.7)}
-const diff=()=>{const n=LV.n,rk=LV.rank||1,th=TH();return{hp:hpMul(n)*rk*(th>=3?1.2:1)*(1+0.25*PK('p_blood')),fire:(1+(n-1)*0.08)*(1+(rk-1)*0.6)*(th>=5?1.2:1),bs:Math.min(380,150+n*10)*S*(1+(rk-1)*0.25)*(th>=1?1.1:1)*(1+0.12*PK('p_storm')),n,rk}};
+function setRank(){LV.rank=clamp(Math.sqrt(firePow()/(refPow(LV.n)*1.8)),1,3.5)}
+// heat: flying without taking hits slowly raises enemy fire rate and bullet speed, a hit cools it down
+const heat=()=>R?R.heat||0:0;
+const diff=()=>{const n=LV.n,rk=LV.rank||1,th=TH();return{hp:hpMul(n)*rk*(th>=3?1.2:1)*(1+0.25*PK('p_blood')),fire:(1+(n-1)*0.08)*(1+0.45*heat())*(th>=5?1.2:1),bs:Math.min(380,150+n*10)*S*(1+0.18*heat())*(th>=1?1.1:1)*(1+0.12*PK('p_storm')),n,rk}};
 // derived stats
 const U=k=>R&&R.daily?0:SV.up[k]||0,hullDef=()=>HULLS[SV.hull]||HULLS.striker;
 // perks repeat with diminishing returns so stacking one perk never runs away
 const PKD=[0,.2,.36,.48,.58,.66],PKR=[0,.12,.22,.3,.36];
-const basePow=()=>1+0.05*Math.min(10,U('power')),curPow=()=>(basePow()+(R?R.pg:0))*(hullDef().pow||1)*(1+PKD[PK('dmg')]+0.4*PK('glass')+0.25*PK('p_storm'));
-const baseShots=()=>1+Math.min(2,U('shots')),curShots=()=>Math.min(MAXST,baseShots()+(R?R.sg:0));
-const maxHull=()=>Math.max(1,3+Math.min(3,U('hull'))+hullDef().hull+PK('hp')-PK('glass')-PK('p_frail')-(TH()>=4?1:0)),rateMul=()=>(1+0.05*Math.min(6,U('rate')))*hullDef().rate*(1+PKR[PK('rate')]+0.25*PK('over')),gemMul=()=>(1+0.08*U('greed'))*(1+0.25*PK('greed'))*rewMul();
+const basePow=()=>1+0.03*Math.min(10,U('power')),pgEff=()=>R?1.6*R.pg/(R.pg+1.6):0,curPow=()=>(basePow()+pgEff())*(hullDef().pow||1)*(1+PKD[PK('dmg')]+0.4*PK('glass')+0.25*PK('p_storm'));
+const baseShots=()=>1+Math.min(1,U('shots')),curShots=()=>Math.min(MAXST,baseShots()+(R?R.sg:0));
+const maxHull=()=>Math.max(1,3+Math.min(3,U('hull'))+hullDef().hull+PK('hp')-PK('glass')-PK('p_frail')-(TH()>=4?1:0)),rateMul=()=>(1+0.03*Math.min(6,U('rate')))*hullDef().rate*(1+PKR[PK('rate')]+0.25*PK('over')),gemMul=()=>(1+0.08*U('greed'))*(1+0.25*PK('greed'))*rewMul();
 // run perks: pick 1 of 3 after every sector, they last for the current run only
 const PERKS=[
  {id:'dmg',n:'Overcharge',d:'+20% damage, less for each repeat',max:5,col:'#ff4fd8',ic:'D'},
@@ -234,8 +236,8 @@ function dailyDef(){const day=dayKey();let h=7;for(const c of day)h=Math.imul(h^
  while(mods.length<3){const m=mk[Math.floor(r()*mk.length)];if(!mods.includes(m))mods.push(m)}return{day,seed:h,pri:pr[Math.floor(r()*pr.length)],sec:se[Math.floor(r()*se.length)],mods}}
 function newDaily(){newRun(1,dailyDef())}
 function dailyRecord(won){const D=R.daily,Q=SV.dly||(SV.dly={day:'',best:0,streak:0,last:''});if(Q.day!==D.day){Q.day=D.day;Q.best=0;Q.won=0}Q.best=Math.max(Q.best,Math.floor(R.score));if(won)Q.won=1;if(Q.last!==D.day){Q.streak=Q.last===dayKey(-1)?Q.streak+1:1;Q.last=D.day}save()}
-function newRun(n,daily){rngF=daily?mulberry(daily.seed):null;const pre=daily?(daily.mods.includes('lucky')?3:0):n>=16?6:n>=11?4:n>=6?2:0;R={pk:{},kc:0,threat:daily?0:SV.threat||0,daily:daily||null,dm:{},bk:[GR()<0.5?0:1,GR()<0.5?2:3],endless:n>FINAL,start:n,level:n,pg:0,sg:0,score:0,gems:0,combo:0,comboT:0,maxCombo:0,levels:0,tw:null,elites:0};if(daily)for(const m of daily.mods){if(PERKS.find(p=>p.id===m))R.pk[m]=1;else R.dm[m]=1}ship=null;startLevel(n);if(daily)later(4.6,()=>banner('DAILY SORTIE',daily.mods.map(m=>DMODS[m][0]).join('  +  '),'#4dffb0'));
- if(pre){R.sg=Math.min(MAXST-baseShots(),Math.max(R.sg,pre));R.pre=pre;R.offer=rollPerks();st='perk';stT=0}}
+function newRun(n,daily){rngF=daily?mulberry(daily.seed):null;const pre=daily?(daily.mods.includes('lucky')?3:0):n>=16?8:n>=11?6:n>=6?3:0;R={pk:{},kc:0,threat:daily?0:SV.threat||0,daily:daily||null,dm:{},bk:[GR()<0.5?0:1,GR()<0.5?2:3],endless:n>FINAL,start:n,level:n,pg:0,sg:0,score:0,gems:0,combo:0,comboT:0,maxCombo:0,levels:0,tw:null,elites:0};if(daily)for(const m of daily.mods){if(PERKS.find(p=>p.id===m))R.pk[m]=1;else R.dm[m]=1}ship=null;startLevel(n);if(daily)later(4.6,()=>banner('DAILY SORTIE',daily.mods.map(m=>DMODS[m][0]).join('  +  '),'#4dffb0'));
+ if(pre){R.sg=Math.min(MAXST-baseShots(),Math.max(R.sg,daily?pre:Math.round(pre*1.15)));if(!daily)R.pg=pre*0.05;R.pre=pre;R.offer=rollPerks();st='perk';stT=0}}
 function startLevel(n){const bossL=n%5===0,mini=n%5===3;LV={n,waveCount:(bossL?3:Math.min(4+Math.floor(n*0.5),10)-(mini?1:0))+2*PK('p_swarm'),waveIdx:0,waveT:0,gap:2.2,hits:0,kills:0,bossLevel:bossL||mini,mini,bossDone:false,gemStart:R.gems};
  const mh=maxHull();if(!ship)ship={hull:mh};else ship.hull=Math.min(mh,ship.hull+1);
  Object.assign(ship,{x:W/2,y:H*0.8,vx:0,kvx:0,kvy:0,inv:1.5,fireT:0,missT:0,chainT:0.6,droneT:0,bombs:Math.min(9,2+Math.min(3,U('bomb'))+(hullDef().bomb||0)+PK('bomb')),shield:U('shield')>0||PK('shield')?1:0,shieldT:0,dead:0,mineT:1,gravT:2,discT:0.8,bladeA:0});
@@ -270,7 +272,7 @@ function spawnWave(){const n=LV.n,i=LV.waveIdx++;LV.waveT=0;setRank();
   for(let c=0;c<4;c++){const sx=W*(0.15+0.7*c/3);addEnemy(pick(P),{mode:'enter',delay:1+c*0.15,p0:{x:c<2?-30*S:W+30*S,y:H*0.3},c1:{x:W/2,y:H*0.5},c2:{x:sx,y:top+H*0.3},p3:{x:sx,y:top+H*0.2},dur:1.6,hold:rnd(4,9)})}}}
 function spawnBoss(){const n=LV.n,mini=LV.mini,fin=n===FINAL,idx=Math.max(0,Math.floor(n/5)-1);setRank();
  const kind=mini?5:fin?6:n<FINAL?R.bk[idx]:(n/5-4)%5,cyc=fin?0:n>FINAL?1+Math.floor((n-16)/25):(R.threat>=2||(mini&&n>=13))?1:0,K=BOSSK[kind],th=TINT[cyc%4];
- const hp=Math.round(420*hpMul(n)*LV.rank*(1+Math.min(idx,4)*0.15)*(mini?0.4:1)*(fin?2:1));let alt=-1;if(cyc&&!fin){alt=Math.floor(rnd(0,5));if(alt===kind)alt=(alt+1)%5}
+ const hp=Math.round(420*hpMul(n)*LV.rank*(1+Math.min(idx,4)*0.15)*(mini?(n<=3?0.3:0.4):1)*(fin?2:1));let alt=-1;if(cyc&&!fin){alt=Math.floor(rnd(0,5));if(alt===kind)alt=(alt+1)%5}
  boss={kind,cyc,alt,title:K.t+(cyc?' - ELITE':''),sig:K.sig,hue2:(K.h2+th)%360,segs:[],x:W/2,y:-140*S,ty:safe.t+H*(mini?0.17:0.2),hp,maxhp:hp,t:0,pt:0,pat:0,ang:0,sub:0,mini,name:mini?'SENTINEL '+Math.ceil(n/5):fin?'NOVA PRIME':BOSSN[kind],hue:(K.h+th)%360,fl:0,r:(mini?40:fin?70:58)*S,enter:true,dying:0,idx:Math.min(4,mini?Math.max(0,idx-1):idx),arms:mini?3:5+idx%3};
  SFX.alarm();banner(fin?'FINAL BOSS':'WARNING',(mini?'MINI BOSS: ':fin?'':'BOSS: ')+boss.name+'  //  '+boss.title,fin?'#fff27a':mini?'#ffb13b':'#ff3b5c');if(alt>=0)later(2.7,()=>banner('ELITE','Also wields the '+BOSSN[alt]+' beam','#fff27a'));shake=10}
 function ebullet(x,y,a,sp,col='#ff4f9a',r=5){sp*=(1-0.08*PK('slow'))*(1+0.1*PK('over'));eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:r*S,col})}
@@ -323,7 +325,7 @@ const HB=[[0,-14,5],[0,-2,7.5],[0,10,5.5],[-11,6,4.5],[11,6,4.5],[-19,10,3.5],[1
 function shipCircles(){const k=S*hullDef().hb;return HB.map(c=>[ship.x+c[0]*k,ship.y+c[1]*k,c[2]*k])}
 function hitsShip(x,y,r){if(Math.abs(x-ship.x)>40*S+r||Math.abs(y-ship.y)>40*S+r)return false;for(const c of shipCircles()){const dx=x-c[0],dy=y-c[1],rr2=r+c[2];if(dx*dx+dy*dy<rr2*rr2)return true}return false}
 function hurt(){if(god.on||ship.inv>0||ship.dead)return;if(ship.shield>0){ship.shield=0;ship.shieldT=0;ship.inv=1;SFX.shield();ring(ship.x,ship.y,'#8fd3ff',20,90,0.5,4);burst(ship.x,ship.y,20,'#8fd3ff',260);return}
- ship.hull--;LV.hits++;ship.inv=hullDef().inv||2.5;R.combo=0;
+ ship.hull--;LV.hits++;R.heat=Math.max(0,heat()-0.45);ship.inv=hullDef().inv||2.5;R.combo=0;
  if(R.sg>0){const lost=Math.min(R.sg,hullDef().keep||LV.n<=2?1:2);R.sg-=lost;ftext(ship.x,ship.y-40*S,lost+' STACK'+(lost>1?'S':'')+' LOST','#ff9a9a',12)}else if(R.pg>0){const l=Math.min(R.pg,0.3);R.pg-=l;ftext(ship.x,ship.y-40*S,'POWER -'+l.toFixed(2),'#ff9a9a',12)}
  SFX.hurt();shake=16;hurtA=0.6;explode(ship.x,ship.y,'#ff5a7a',1.5);eb=eb.filter(b=>Math.hypot(b.x-ship.x,b.y-ship.y)>120*S);
  if(ship.hull<=0&&PK('ward')&&!LV.ward){LV.ward=1;ship.hull=1;ship.inv=3;banner('LAST STAND','Hull at 1, recover it fast','#ff3b5c');ring(ship.x,ship.y,'#ff3b5c',10,200,0.9,8)}
@@ -389,7 +391,7 @@ function update(dt){t+=dt;stT+=dt;shotCd-=dt;
  if(st==='victory'){laserOn=false;wells.length=0;collectAll(dt);for(const p of parts)p.vy+=40*S*dt;return}
  if(st!=='play'||paused)return;
  if(hitStop>0){hitStop-=dt;return}
- music(dt);tickTimers(dt);const d=diff();
+ music(dt);tickTimers(dt);R.heat=Math.min(1,heat()+dt/75);const d=diff();
  const kx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),ky=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
  const slow=precise()?0.4:1,spd=hullDef().speed,maxSp=540*S*slow*spd,nrm=(kx&&ky)?0.7071:1,acc=1-Math.exp(-dt*(kx||ky?14:18));
  ship.kvx=lerp(ship.kvx,kx*nrm*maxSp,acc);ship.kvy=lerp(ship.kvy,ky*nrm*maxSp,acc);
@@ -405,7 +407,7 @@ function update(dt){t+=dt;stT+=dt;shotCd-=dt;
  wells=wells.filter(g=>g.m<g.l);
  if(SV.dmgNum&&Math.floor(t*5)!==Math.floor((t-dt)*5)){for(const e of enemies)if(e.dn>0.05){ftext(e.x+rnd(-8,8)*S,e.y-e.def.r*S,fmtN(e.dn),e.sh>0?'#9fd8ff':'#ffe9a8',9);e.dn=0}if(boss&&boss.dn>0.05){ftext(boss.x+rnd(-30,30)*S,boss.y+boss.r*0.6,fmtN(boss.dn),'#ffe9a8',11);boss.dn=0}}
  const nd=Math.min(2,U('drone'))+PK('drone');ship.droneT-=dt;
- if(nd>0&&ship.droneT<=0){ship.droneT=0.22;for(let i=0;i<nd;i++){const p=dronePos(i,nd);pb.push({x:p.x,y:p.y-8*S,vx:0,vy:-760*S,dm:curPow()*0.6,pierce:0,hitL:[],k:'drone'})}}
+ if(nd>0&&ship.droneT<=0){ship.droneT=0.22;for(let i=0;i<nd;i++){const p=dronePos(i,nd);pb.push({x:p.x,y:p.y-8*S,vx:0,vy:-760*S,dm:curPow()*0.35,pierce:0,hitL:[],k:'drone'})}}
  if(R.comboT>0){R.comboT-=dt;if(R.comboT<=0)R.combo=0}
  LV.waveT+=dt;const alive=enemies.filter(e=>!e.dead&&!e.gone&&!e.bg).length;
  if(LV.ev==='meteor'&&(LV.waveIdx<LV.waveCount||alive>0)){LV.mt=(LV.mt||2)-dt;if(LV.mt<=0){LV.mt=rnd(0.9,1.7);const big=Math.random()<0.3;addEnemy('rock',{mode:'pass',bg:1,noElite:1,x0:0,x:W*rnd(0.06,0.94),y:-30*S,vx:rnd(-30,30)*S,vy:rnd(130,190)*S*(1+LV.n*0.02),sz:big?1.6:1,rot:rnd(0,TAU)}).hp*=big?2.5:1}}
@@ -489,7 +491,7 @@ function updBoss(dt,d){const b=boss;b.t+=dt;b.fl-=dt;
   if(b.dying<=0){explode(b.x,b.y,'#ffffff',b.mini?3:5);explode(b.x,b.y,'#ffb13b',b.mini?2.5:4);flashA=1;shake=35;const ng=b.mini?14:24+LV.n*2;for(let i=0;i<ng;i++)dropAt(b.x+rnd(-40,40)*S,b.y+rnd(-30,30)*S,'gem',b.mini?2:3);dropAt(b.x,b.y,'P');dropAt(b.x+30*S,b.y,'+');dropAt(b.x-30*S,b.y,'H');if(!b.mini)dropW(b.x,b.y+30*S);
    const bs=Math.round((b.mini?2000:5000)*LV.n/5*mult());R.score+=bs;ftext(b.x,b.y,''+bs,'#fff27a',22);if(!b.mini){SV.bosses++;ach('boss')}boss=null;LV.bossDone=true;LV.gap=1.5}return}
  if(b.enter){b.y=lerp(b.y,b.ty,dt*1.6);if(Math.abs(b.y-b.ty)<3*S)b.enter=false;return}
- const rage=!!b.ph2,rate=(b.ph3?1.55:rage?1.4:1)*(1+b.idx*0.12)*(1+Math.max(0,d.n-5)*0.02)*(b.mini?0.8:1);
+ const rage=!!b.ph2,rate=(b.ph3?1.55:rage?1.4:1)*(1+0.3*heat())*(1+b.idx*0.12)*(1+Math.max(0,d.n-5)*0.02)*(b.mini?0.8:1);
  b.x=W/2+Math.sin(b.t*(b.mini?0.8:0.55))*Math.max(10*S,W/2-b.r*1.75);b.y=b.ty+Math.sin(b.t*1.1)*(b.kind===1?40:14)*S;
  if(b.kind===6&&b.ph2&&!b.ph3&&b.hp<b.maxhp*0.33){b.ph3=1;b.pt=-1.6;b.pat=0;b.sub=0;b.next='ult';beams.length=0;for(const q of eb)burst(q.x,q.y,1,q.col,60,0.4,2);eb=[];flashA=0.6;shake=18;hitStop=0.2;ring(b.x,b.y,'#fff27a',20,320,1,8);banner('FINAL PHASE','NOVA PRIME unleashes everything','#fff27a');SFX.alarm();return}
  if(!b.ph2&&b.hp<b.maxhp*(b.kind===6?0.66:0.5)){b.ph2=1;b.pt=-1.4;b.pat=0;b.sub=0;b.next=bossPats(b)[0];beams.length=0;for(const q of eb)burst(q.x,q.y,1,q.col,60,0.4,2);eb=[];flashA=Math.max(flashA,0.45);shake=Math.max(shake,14);hitStop=0.15;ring(b.x,b.y,'#ffffff',20,260,0.8,6);ring(b.x,b.y,bh(b.hue),10,200,1,10);banner('PHASE 2',b.name+' is enraged','#ff3b5c');SFX.alarm();return}
@@ -747,7 +749,7 @@ function screenMap(){cx.fillStyle='rgba(6,3,20,0.35)';cx.fillRect(0,0,W,H);const
  button(safe.l+20*S,by+58*S,W-safe.l-safe.r-40*S,52*S,'LAUNCH ACT '+ROMAN[actOf(SV.ck)+1]+'  (SECTOR '+SV.ck+')',()=>{initAudio();newRun(SV.ck)},{solid:1,def:1});
  {const b3=(W-safe.l-safe.r-64*S)/3,dq=SV.dly&&SV.dly.day===dayKey()?SV.dly:null;button(safe.l+20*S,by,b3,46*S,'HANGAR',()=>openHangar('menu'),{col:'#4dffb0',sub:'Upgrades'});button(safe.l+32*S+b3,by,b3,46*S,'DAILY',()=>{initAudio();newDaily()},{col:'#4dffb0',sub:dq?(dq.won?'cleared ':'best ')+fmtN(dq.best):'new sortie'});button(safe.l+44*S+b3*2,by,b3,46*S,'AWARDS',()=>{st='awards'},{col:'#fff27a',sub:Object.keys(SV.ach).length+' / '+ACH.length})}
  button(safe.l+12,top+6*S,40*S,36*S,'<',()=>{st='title'},{col:'#a9a2d8'});
- txt(SV.wins&&SV.threat?'Threat '+SV.threat+' adds: '+THR[SV.threat]:SV.ck>1?'Starting later gives you '+(SV.ck>=11?4:2)+' free perks and '+(SV.ck>=11?4:2)+' stacks':'Tap an unlocked START node to begin from that act',W/2,g0+rh*5+6*S,8.5,'#8f88c0','center','700');
+ txt(SV.wins&&SV.threat?'Threat '+SV.threat+' adds: '+THR[SV.threat]:SV.ck>1?'Starting later gives you '+(SV.ck>=11?6:3)+' free perks and '+(SV.ck>=11?7:3)+' stacks':'Tap an unlocked START node to begin from that act',W/2,g0+rh*5+6*S,8.5,'#8f88c0','center','700');
  escAction=()=>{st='title'};if(!isTouch())txt('Arrows to select, Enter to launch, H for Hangar',W/2,H-safe.b-12*S,9.5,'#8f88c0','center','700');topIcons()}
 function hexIcon(x,y,r,col,label,rot=0){cx.globalCompositeOperation='lighter';glow(x,y,r*1.8,col,0.45);cx.globalCompositeOperation='source-over';const pts=[];for(let k=0;k<6;k++){const a=k/6*TAU+rot;pts.push([x+Math.cos(a)*r,y+Math.sin(a)*r])}poly(pts,'#0e1630',col,2*S);if(label)txt(label,x,y+1,r*0.95/S,col,'center','900')}
 function buyFx(x,y,col){SFX.buy();burst(x,y,20,col,200);SV.bought++;if(SV.bought>=10)ach('shop');save()}
@@ -851,7 +853,7 @@ function sidePanels(){const sw=OX;if(sw<190)return;const k=Math.min(1.25,Math.ma
  rows.forEach((r,i)=>{const yy=y+52*u+i*31*u,act=r[2]==='any'||r[2]===lastInput;cx.globalAlpha=act?1:0.45;cx.font='900 '+Math.round(11*u)+'px '+FONT;const tw=cx.measureText(r[0]).width+14*u;
   rr(lx+16*u,yy-11*u,tw,22*u,5*u);cx.fillStyle='rgba(95,232,255,0.14)';cx.fill();cx.strokeStyle='rgba(95,232,255,0.5)';cx.lineWidth=1;cx.stroke();sideText(r[0],lx+16*u+7*u,yy+1,11*u,'#dffaff','left','900');sideText(r[1],lx+16*u+tw+10*u,yy+1,12*u,'#c9c2f0','left','700');cx.globalAlpha=1});
  y+=bh+18*u;box(lx,y,pw,82*u,'#ff4fd8');sideText('TIP',lx+18*u,y+20*u,13*u,'#ff7fe4','left','900');
- const tips=['Getting hit costs 2 weapon stacks (one tier). Phantom hulls lose only 1.','Each weapon evolves through 5 tiers as stacks build. See the codex in the Hangar.','Rare blue + drops add a stack. Epic purple drops change your weapon and reset stacks.','Grab a drop of your own weapon to gain a stack instead.','Your whole hull can be hit. Hold Shift to see its outline.','After every sector you visit the Hangar. Gems are kept on death.','Pink P raises power. Small pink shards add a little.','Gold elites drop the best pickups.','Mini bosses guard sectors 3, 8, 13. Bosses every 5th sector.','Shielders soak damage until the blue ring pops. Medics heal allies, kill them first.','Bombs erase every bullet on screen.','Try different hulls: Titan starts with 2 stacks, Viper shoots faster.'];const tip=tips[Math.floor(t/7)%tips.length];
+ const tips=['Getting hit costs 2 weapon stacks (one tier). Phantom hulls lose only 1.','Each weapon evolves through 5 tiers as stacks build. See the codex in the Hangar.','Rare blue + drops add a stack. Epic purple drops change your weapon and reset stacks.','Grab a drop of your own weapon to gain a stack instead.','Your whole hull can be hit. Hold Shift to see its outline.','After every sector you visit the Hangar. Gems are kept on death.','Pink P raises power. Small pink shards add a little.','Gold elites drop the best pickups.','Mini bosses guard sectors 3, 8, 13. Bosses every 5th sector.','Shielders soak damage until the blue ring pops. Medics heal allies, kill them first.','Bombs erase every bullet on screen.','Try different hulls: Titan starts with 2 stacks, Viper shoots faster.','Flying without getting hit raises the heat: enemies fire faster. A hit cools it down.','Beat NOVA PRIME in sector 15 to unlock Threat levels and Endless mode.','Pair weapons for combos, like Pierce Laser with Chain Lightning.'];const tip=tips[Math.floor(t/7)%tips.length];
  cx.font='700 '+Math.round(12.5*u)+'px '+FONT;const words=tip.split(' ');let line='',ly=y+44*u;for(const w2 of words){const tl=line?line+' '+w2:w2;if(cx.measureText(tl).width>pw-36*u){sideText(line,lx+18*u,ly,12.5*u,'#e6dcff','left','700');line=w2;ly+=18*u}else line=tl}sideText(line,lx+18*u,ly,12.5*u,'#e6dcff','left','700');
  // right: pilot and run status
  y=FH*0.08-20*u;box(rx,y,pw,170*u,'#4dffb0');sideText('PILOT RECORD',rx+18*u,y+24*u,15*u,'#4dffb0','left','900');
@@ -925,7 +927,7 @@ addEventListener('blur',()=>{keys={}});
 let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(resize,120)});document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
 // ---------- test hook: only active for a local file opened with #devtest
 const API={ts:1,god,get st(){return st},SV,get R(){return R},get LV(){return LV},get ship(){return ship},get boss(){return boss},get enemies(){return enemies},get mouse(){return mouse},
- newRun,openHangar,launchNext,get hangarTab(){return hangarTab},set hangarTab(v){hangarTab=v},bomb,gameOver,forceDie(){god.on=false;ship.inv=0;ship.shield=0;ship.hull=1;hurt()},get btns(){return btns},get OX(){return OX},get focus(){return focus},hurt,dropAt,dropW,curShots,addEnemy,get codexId(){return codexId},set codexId(v){codexId=v},set wSub(v){wSub=v},get pickups(){return pickups},spawnBoss,cost,wCost,SHOP,basePow,baseShots,priW,collectAll,get eb(){return eb},set eb(v){eb=v},get beams(){return beams},shipCircles,firePow,refPow,curPow,rateMul,PERKS,takePerk,levelClear,killEnemy,newDaily,dailyDef,combo,startLevel};
+ newRun,openHangar,launchNext,get hangarCtx(){return hangarCtx},get hangarTab(){return hangarTab},set hangarTab(v){hangarTab=v},bomb,gameOver,forceDie(){god.on=false;ship.inv=0;ship.shield=0;ship.hull=1;hurt()},get btns(){return btns},get OX(){return OX},get focus(){return focus},hurt,dropAt,dropW,curShots,addEnemy,get codexId(){return codexId},set codexId(v){codexId=v},set wSub(v){wSub=v},get pickups(){return pickups},spawnBoss,cost,wCost,SHOP,basePow,baseShots,priW,collectAll,get eb(){return eb},set eb(v){eb=v},get beams(){return beams},heat,shipCircles,firePow,refPow,curPow,rateMul,PERKS,takePerk,levelClear,killEnemy,newDaily,dailyDef,combo,startLevel};
 if(location.protocol==='file:'&&location.hash==='#devtest')window.__ns=API;
 if(typeof SV.qual==='number'&&SV.qual>=0){QUAL=SV.qual;qualAuto=false}
 resize();requestAnimationFrame(frame);
