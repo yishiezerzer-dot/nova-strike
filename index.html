@@ -22,7 +22,7 @@ const ease=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
 function bez(a,b,c,d,k){const u=1-k;return{x:u*u*u*a.x+3*u*u*k*b.x+3*u*k*k*c.x+k*k*k*d.x,y:u*u*u*a.y+3*u*u*k*b.y+3*u*k*k*c.y+k*k*k*d.y}}
 let QUAL=2,qualAuto=true,sndBudget=40;const QNAMES=['LOW','MEDIUM','HIGH'];const SB=v=>QUAL===2?v:QUAL===1?v*0.5:0;const PCAP=()=>[220,500,900][QUAL];
 const SAVEKEY='novastrike_save_v3',V2KEY='novastrike_save_v2',OLDKEY='novastrike_save_v1';
-const defSave=()=>({ver:3,gems:0,unlocked:1,stars:{},up:{power:0,shots:0,rate:0,hull:0,magnet:0,bomb:0,drone:0,shield:0,greed:0},w:{blaster:1,laser:0,plasma:0,rail:0,flak:0,flame:0,missile:0,chain:0,blades:0,mines:0,grav:0,discs:0},pri:'blaster',sec:'none',hulls:{striker:1},hull:'striker',ach:{},best:0,kills:0,bosses:0,deaths:0,maxLevel:0,bought:0,muted:false,qual:-1,dmgNum:false,elites:0});
+const defSave=()=>({ver:3,gems:0,unlocked:1,stars:{},up:{power:0,shots:0,rate:0,hull:0,magnet:0,bomb:0,drone:0,shield:0,greed:0},w:{blaster:1,laser:0,plasma:0,rail:0,flak:0,flame:0,missile:0,chain:0,blades:0,mines:0,grav:0,discs:0},pri:'blaster',sec:'none',hulls:{striker:1},hull:'striker',ach:{},best:0,kills:0,bosses:0,deaths:0,maxLevel:0,bought:0,muted:false,qual:-1,dmgNum:false,elites:0,shake:1,music:1,sfx:1,tut:{}});
 let SV,migrateNote=null;
 function mergeSave(o){const d=defSave();const r=Object.assign(d,o);r.up=Object.assign(defSave().up,o.up||{});r.w=Object.assign(defSave().w,o.w||{});r.hulls=Object.assign({striker:1},o.hulls||{});r.ver=3;if(!r.w[r.pri])r.pri='blaster';if(r.sec!=='none'&&!r.w[r.sec])r.sec='none';if(!r.hulls[r.hull])r.hull='striker';return r}
 try{const raw=localStorage.getItem(SAVEKEY),raw2=localStorage.getItem(V2KEY);
@@ -65,7 +65,7 @@ const HULLS={
  striker:{name:'Striker',desc:'Balanced all-rounder',cost:0,hull:0,bomb:0,rate:1,speed:1,hb:1,col:'#5fe8ff',acc:'#ff4fd8'},
  bulwark:{name:'Bulwark',desc:'+2 hull, +1 bomb, slower, bigger',cost:600,hull:2,bomb:1,rate:1,speed:0.85,hb:1.15,col:'#7cff6b',acc:'#ffb13b'},
  viper:{name:'Viper',desc:'+20% fire rate, fast, slim, -1 hull',cost:800,hull:-1,bomb:0,rate:1.2,speed:1.15,hb:0.82,col:'#ff4fd8',acc:'#5fe8ff'},
- phantom:{name:'Phantom',desc:'Keeps half its stacks when hit, longer recovery',cost:1100,hull:0,bomb:0,rate:1,speed:1.08,hb:0.9,keep:0.5,inv:3.2,col:'#b48cff',acc:'#4dffe0'},
+ phantom:{name:'Phantom',desc:'Loses only 1 stack when hit, longer recovery',cost:1100,hull:0,bomb:0,rate:1,speed:1.08,hb:0.9,keep:1,inv:3.2,col:'#b48cff',acc:'#4dffe0'},
  titan:{name:'Titan',desc:'+1 hull, +20% power, 2 free stacks, slow',cost:1500,hull:1,bomb:0,rate:0.95,speed:0.8,hb:1.25,pow:1.2,stack:2,col:'#ffb13b',acc:'#ff5a5a'}};
 const ACH=[
  {id:'first',name:'First Contact',desc:'Destroy your first enemy'},
@@ -109,7 +109,7 @@ function music(dt){if(!AC||SV.muted||st!=='play'||paused)return;musT-=dt;if(musT
  if(s%4===0)tone(120,0.14,'sine',0.22,0.35);
  if(s%8===4)noise(0.14,0.09,3000);else if(s%2===1)noise(0.03,0.025,9000,0,'highpass');
  const ar=[0,1,2,3,2,1,3,2][s%8];if(s%2===0||bossOn)tone(mf(ch[ar]+12+(bossOn&&s%16>7?1:0)),spb*1.2,'triangle',0.02)}
-let neb=null,nebHue=250,stars=[],planet=null,bgY=0,sideStars=[];
+const NEBH=[250,285,320,205,345,265,190,300,230,330];let neb=null,nebHue=250,stars=[],planet=null,bgY=0,sideStars=[];
 function resize(){FW=Math.max(1,innerWidth);FH=Math.max(1,innerHeight);const budget=[0.9e6,1.6e6,2.8e6][QUAL];DPR=Math.max(0.6,Math.min(window.devicePixelRatio||1,2.5,Math.sqrt(budget/(FW*FH))));wide=FW>FH*0.85;
  W=wide?Math.round(Math.min(FW,FH*0.62)):FW;H=FH;OX=Math.round((FW-W)/2);
  cv.width=Math.round(FW*DPR);cv.height=Math.round(FH*DPR);
@@ -132,10 +132,10 @@ function glow(x,y,r,col,a=1){cx.globalAlpha=a;cx.drawImage(glowSpr(col),x-r,y-r,
 function drawBG(dt,speed=1){bgY+=dt*14*S*speed;const oy=bgY%H;cx.drawImage(neb,0,oy,W,H);cx.drawImage(neb,0,oy-H,W,H);
  if(planet){planet.y+=dt*7*S*speed;if(planet.y-planet.r>H){planet.y=-planet.r*2-H*rnd(0.5,1.5);planet.x=W*rnd(0.15,0.85);planet.r=rnd(50,120)*S;planet.hue=(nebHue+rnd(100,200))%360;planet.ring=Math.random()<0.6}
   const p=planet,g=cx.createRadialGradient(p.x-p.r*0.4,p.y-p.r*0.4,p.r*0.1,p.x,p.y,p.r);g.addColorStop(0,`hsl(${p.hue},70%,62%)`);g.addColorStop(0.7,`hsl(${p.hue+20},60%,25%)`);g.addColorStop(1,`hsl(${p.hue+30},60%,8%)`);
-  cx.save();cx.globalAlpha=0.55;if(p.ring){cx.strokeStyle=`hsla(${p.hue},80%,75%,0.35)`;cx.lineWidth=5*S;cx.beginPath();cx.ellipse(p.x,p.y,p.r*1.8,p.r*0.42,-0.35,Math.PI,TAU);cx.stroke()}
+  cx.save();cx.globalAlpha=0.38;if(p.ring){cx.strokeStyle=`hsla(${p.hue},80%,75%,0.35)`;cx.lineWidth=5*S;cx.beginPath();cx.ellipse(p.x,p.y,p.r*1.8,p.r*0.42,-0.35,Math.PI,TAU);cx.stroke()}
   cx.fillStyle=g;cx.beginPath();cx.arc(p.x,p.y,p.r,0,TAU);cx.fill();
   cx.globalAlpha=0.2;for(let i=-2;i<=2;i++){cx.fillStyle=`hsl(${p.hue+i*15},60%,${40+i*6}%)`;cx.beginPath();cx.ellipse(p.x,p.y+i*p.r*0.32,p.r*0.95*Math.sqrt(1-Math.pow(i*0.32,2)),p.r*0.07,0,0,TAU);cx.fill()}
-  cx.globalAlpha=0.55;if(p.ring){cx.beginPath();cx.ellipse(p.x,p.y,p.r*1.8,p.r*0.42,-0.35,0,Math.PI);cx.stroke()}cx.restore()}
+  cx.globalAlpha=0.38;if(p.ring){cx.beginPath();cx.ellipse(p.x,p.y,p.r*1.8,p.r*0.42,-0.35,0,Math.PI);cx.stroke()}cx.restore()}
  cx.globalCompositeOperation='lighter';
  for(const s of stars){const v=(18+s.z*s.z*320)*S*speed;s.y+=v*dt;if(s.y>H+20){s.y=-20;s.x=Math.random()*W}
   const a=0.35+0.65*Math.abs(Math.sin(t*2+s.tw));if(s.z>0.82){cx.strokeStyle=`rgba(170,220,255,${0.6*a})`;cx.lineWidth=1.3;cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(s.x,s.y-v*0.06*speed);cx.stroke()}
@@ -172,7 +172,7 @@ function newRun(n){R={start:n,level:n,pg:0,sg:0,score:0,gems:0,combo:0,comboT:0,
 function startLevel(n){const bossL=n%5===0,mini=n%5===3;LV={n,waveCount:bossL?3:Math.min(4+Math.floor(n*0.5),10)-(mini?1:0),waveIdx:0,waveT:0,gap:2.2,hits:0,kills:0,bossLevel:bossL||mini,mini,bossDone:false,gemStart:R.gems};
  const mh=maxHull();if(!ship)ship={hull:mh};else ship.hull=Math.min(mh,ship.hull+1);
  Object.assign(ship,{x:W/2,y:H*0.8,vx:0,kvx:0,kvy:0,inv:1.5,fireT:0,missT:0,chainT:0.6,droneT:0,bombs:Math.min(9,2+Math.min(3,U('bomb'))+(hullDef().bomb||0)),shield:U('shield')>0?1:0,shieldT:0,dead:0,mineT:1,gravT:2,discT:0.8,bladeA:0});
- if(hullDef().stack)R.sg=Math.max(R.sg,hullDef().stack);rails=[];flames=[];wells=[];timers=[];mouse.follow=false;enemies=[];pb=[];eb=[];pickups=[];zaps=[];boss=null;{const nw=Object.keys(ET).filter(k=>ET[k].from===n);for(const k of nw)later(2.6,()=>banner('NEW ENEMY',ET[k].label,ET[k].col))}buildNeb((210+n*47)%360);R.level=n;
+ if(hullDef().stack)R.sg=Math.max(R.sg,hullDef().stack);rails=[];flames=[];wells=[];timers=[];mouse.follow=false;enemies=[];pb=[];eb=[];pickups=[];zaps=[];boss=null;{const nw=Object.keys(ET).filter(k=>ET[k].from===n);for(const k of nw)later(2.6,()=>banner('NEW ENEMY',ET[k].label,ET[k].col))}buildNeb(NEBH[(n-1)%NEBH.length]);R.level=n;
  st='play';paused=false;musStep=0;banner('SECTOR '+n,bossL?'Boss signature detected':mini?'Mini boss ahead':(n===R.start?(isTouch()?'Drag to fly, firing is automatic':'Move the mouse or use WASD, firing is automatic'):'Hostiles inbound'),bossL?'#ff5a7a':mini?'#ffb13b':'#5fe8ff');
  if(n>=10)ach('lvl10');if(n>SV.maxLevel){SV.maxLevel=n;save()}}
 function banner(a,b,col){banners.push({a,b,col,t:0})}
@@ -199,10 +199,11 @@ function spawnBoss(){const n=LV.n,mini=LV.mini,idx=Math.max(0,Math.floor(n/5)-1)
  boss={kind,cyc,title:K.t+(cyc?' - ELITE':''),sig:K.sig,hue2:(K.h2+th)%360,segs:[],x:W/2,y:-140*S,ty:safe.t+H*(mini?0.17:0.2),hp,maxhp:hp,t:0,pt:0,pat:0,ang:0,sub:0,mini,name:mini?'SENTINEL '+Math.ceil(n/5):BOSSN[idx%5]+(idx>=5?' '+(Math.floor(idx/5)+1):''),hue:(K.h+th)%360,fl:0,r:(mini?40:58)*S,enter:true,dying:0,idx:mini?Math.max(0,idx-1):idx,arms:mini?3:5+idx%3};
  SFX.alarm();banner('WARNING',(mini?'MINI BOSS: ':'BOSS: ')+boss.name+'  //  '+boss.title,mini?'#ffb13b':'#ff3b5c');shake=10}
 function ebullet(x,y,a,sp,col='#ff4f9a',r=5){eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:r*S,col})}
+const bh=h=>`hsl(${Math.round(300+(((h%360)+360)%360)/360*110)%360},100%,64%)`;
 const aimA=(x,y)=>Math.atan2(ship.y-y,ship.x-x);
 function enemyFire(e){const d=diff(),a=aimA(e.x,e.y);
  if(e.pat==='aim'){ebullet(e.x,e.y,a,d.bs,'#ffb13b');if(d.n>=7||e.elite)later(0.16,()=>{if(!e.dead)ebullet(e.x,e.y,aimA(e.x,e.y),d.bs,'#ffb13b')})}
- else if(e.pat==='spread'){const k=d.n>=8||e.elite?5:3;for(let i=0;i<k;i++)ebullet(e.x,e.y,a+(i-(k-1)/2)*0.24,d.bs*0.9,'#9dff5a')}
+ else if(e.pat==='spread'){const k=d.n>=8||e.elite?5:3;for(let i=0;i<k;i++)ebullet(e.x,e.y,a+(i-(k-1)/2)*0.24,d.bs*0.9,'#ffe14d')}
  else if(e.pat==='ring'){const k=10+Math.min(10,d.n);const o=Math.random()*TAU;for(let i=0;i<k;i++)ebullet(e.x,e.y,o+i/k*TAU,d.bs*0.7,'#c88cff',6)}}
 function enemyAbility(e,dt,d){const ty=e.type;if(ty==='shielder'){if(e.sh<e.shMax){e.shT+=dt;if(e.shT>3){e.sh=Math.min(e.shMax,e.sh+e.shMax*dt*0.5)}}return}
  if(e.y<safe.t||e.y>ship.y-90*S)return;e.abT-=dt;if(e.abT>0)return;
@@ -214,7 +215,7 @@ function enemyAbility(e,dt,d){const ty=e.type;if(ty==='shielder'){if(e.sh<e.shMa
 function burst(x,y,n,col,sp,life=0.7,sz=3){for(let i=0;i<n&&parts.length<PCAP();i++){const a=Math.random()*TAU,v=Math.random()*sp*S;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:rnd(life*0.4,life),m:0,col,s:rnd(1,sz)*S})}}
 function ring(x,y,col,r0,r1,l=0.5,w=3){rings.push({x,y,col,r0:r0*S,r1:r1*S,l,m:0,w})}
 function ftext(x,y,s,col,sz=14){if(texts.length<60)texts.push({x,y,s,col,sz,m:0,l:0.9})}
-function explode(x,y,col,size=1){burst(x,y,14*size,col,260*Math.sqrt(size),0.7,3.5);burst(x,y,8*size,'#ffffff',160*size,0.35,2);ring(x,y,col,6*size,48*size,0.45,3);parts.push({x,y,vx:0,vy:0,l:0.25,m:0,col,s:40*S*size,flash:1});SFX.boom(size>2);shake=Math.max(shake,2+size*2)}
+function explode(x,y,col,size=1){burst(x,y,14*size,col,260*Math.sqrt(size),0.7,3.5);burst(x,y,8*size,'#ffffff',160*size,0.35,2);ring(x,y,col,6*size,48*size,0.45,3);parts.push({x,y,vx:0,vy:0,l:0.25,m:0,col,s:40*S*size,flash:1});SFX.boom(size>2);shake=Math.max(shake,size>=1.5?2+size*2:1.5)}
 // v5 tier visuals: I white, II blue, III purple, IV gold, V white-hot rainbow
 const TCOL=['#ffffff','#ffffff','#5fb8ff','#c07bff','#ffd84d'],tcol=T=>T>=5?`hsl(${(t*220)%360},100%,82%)`:TCOL[T];let muzT=0;
 const mult=()=>Math.min(5,1+Math.floor(R.combo/10)*0.5);
@@ -243,7 +244,7 @@ function shipCircles(){const k=S*hullDef().hb;return HB.map(c=>[ship.x+c[0]*k,sh
 function hitsShip(x,y,r){if(Math.abs(x-ship.x)>40*S+r||Math.abs(y-ship.y)>40*S+r)return false;for(const c of shipCircles()){const dx=x-c[0],dy=y-c[1],rr2=r+c[2];if(dx*dx+dy*dy<rr2*rr2)return true}return false}
 function hurt(){if(god.on||ship.inv>0||ship.dead)return;if(ship.shield>0){ship.shield=0;ship.shieldT=0;ship.inv=1;SFX.shield();ring(ship.x,ship.y,'#8fd3ff',20,90,0.5,4);burst(ship.x,ship.y,20,'#8fd3ff',260);return}
  ship.hull--;LV.hits++;ship.inv=hullDef().inv||2.5;R.combo=0;
- if(R.sg>0){const keep=Math.floor(R.sg*Math.max(hullDef().keep||0,LV.n<=2?0.5:LV.n<=4?0.25:0)),lost=R.sg-keep;R.sg=keep;ftext(ship.x,ship.y-40*S,lost+' STACK'+(lost>1?'S':'')+' LOST'+(keep?', '+keep+' KEPT':''),'#ff9a9a',12)}else if(R.pg>0){const l=Math.min(R.pg,0.3);R.pg-=l;ftext(ship.x,ship.y-40*S,'POWER -'+l.toFixed(2),'#ff9a9a',12)}
+ if(R.sg>0){const lost=Math.min(R.sg,hullDef().keep||LV.n<=2?1:2);R.sg-=lost;ftext(ship.x,ship.y-40*S,lost+' STACK'+(lost>1?'S':'')+' LOST','#ff9a9a',12)}else if(R.pg>0){const l=Math.min(R.pg,0.3);R.pg-=l;ftext(ship.x,ship.y-40*S,'POWER -'+l.toFixed(2),'#ff9a9a',12)}
  SFX.hurt();shake=16;flashA=0.5;explode(ship.x,ship.y,'#ff5a7a',1.5);eb=eb.filter(b=>Math.hypot(b.x-ship.x,b.y-ship.y)>120*S);
  if(ship.hull<=0){ship.dead=1;st='dying';stT=0;explode(ship.x,ship.y,'#5fe8ff',4);explode(ship.x,ship.y,'#ffffff',2);shake=30;flashA=1}}
 function bomb(){if(st!=='play'||paused||!ship||ship.bombs<=0||ship.dead)return;ship.bombs--;SFX.bomb();flashA=0.8;shake=22;ring(ship.x,ship.y,'#ffffff',10,Math.max(W,H)/S*1.1,0.9,8);ring(ship.x,ship.y,'#5fe8ff',10,Math.max(W,H)/S,1.1,14);
@@ -372,7 +373,7 @@ function collectAll(dt){const mr=(80*(1+0.3*U('magnet')))*S*(st==='clear'?20:1);
 function addStack(fy){const before=TIER(curShots());if(curShots()<MAXST){R.sg++;const n=curShots(),T=TIER(n);ftext(ship.x,fy,'STACK '+n+' / '+MAXST,'#4da6ff',15);if(T>before){const wd=WEAP[priW()];banner('TIER '+ROMAN[T],wd.name+': '+wd.tiers[T-1],wd.col);ring(ship.x,ship.y,wd.col,10,120,0.6,5);const tc=tcol(T);ring(ship.x,ship.y,tc,6,170+T*20,0.7,3+T);burst(ship.x,ship.y,QUAL?18+T*6:8,tc,260+T*30,0.6,3);ftext(ship.x,fy-34*S,'TIER '+ROMAN[T]+'!',tc,18+T*2);flashA=Math.max(flashA,0.12+T*0.03);shake=Math.max(shake,4+T)}if(n>=MAXST)ach('maxpow')}else{R.pg+=0.06;ftext(ship.x,fy,'MAX STACKS, POWER UP','#4da6ff',13)}SFX.power();ring(ship.x,ship.y,'#4da6ff',10,70,0.4)}
 function dronePos(i,n){const side=i%2?1:-1,row=Math.floor(i/2);return{x:ship.x+side*(36+row*20)*S+Math.sin(t*3+i)*3*S,y:ship.y+(14+row*16)*S+Math.cos(t*3+i)*3*S}}
 function updBoss(dt,d){const b=boss;b.t+=dt;b.fl-=dt;
- if(b.dying){b.dying-=dt;b.y+=10*S*dt;if(Math.random()<0.35)explode(b.x+rnd(-1,1)*b.r,b.y+rnd(-0.7,0.7)*b.r,pick(['#ffffff',`hsl(${b.hue},90%,65%)`,'#ffb13b']),rnd(1,2.2));shake=Math.max(shake,6);
+ if(b.dying){b.dying-=dt;b.y+=10*S*dt;if(Math.random()<0.35)explode(b.x+rnd(-1,1)*b.r,b.y+rnd(-0.7,0.7)*b.r,pick(['#ffffff',bh(b.hue),'#ffb13b']),rnd(1,2.2));shake=Math.max(shake,6);
   if(b.dying<=0){explode(b.x,b.y,'#ffffff',b.mini?3:5);explode(b.x,b.y,'#ffb13b',b.mini?2.5:4);flashA=1;shake=35;const ng=b.mini?14:24+LV.n*2;for(let i=0;i<ng;i++)dropAt(b.x+rnd(-40,40)*S,b.y+rnd(-30,30)*S,'gem',b.mini?2:3);dropAt(b.x,b.y,'P');dropAt(b.x+30*S,b.y,'+');dropAt(b.x-30*S,b.y,'H');if(!b.mini)dropW(b.x,b.y+30*S);
    const bs=Math.round((b.mini?2000:5000)*LV.n/5*mult());R.score+=bs;ftext(b.x,b.y,''+bs,'#fff27a',22);if(!b.mini){SV.bosses++;ach('boss')}boss=null;LV.bossDone=true;LV.gap=1.5}return}
  if(b.enter){b.y=lerp(b.y,b.ty,dt*1.6);if(Math.abs(b.y-b.ty)<3*S)b.enter=false;return}
@@ -381,17 +382,17 @@ function updBoss(dt,d){const b=boss;b.t+=dt;b.fl-=dt;
  b.pt+=dt;const pats=b.mini?['cross','fan','ring']:rage?[b.sig,'spiral','fan',b.sig,'double','wall']:[b.sig,'spiral','fan','ring',b.sig];const name=pats[b.pat%pats.length];
  if(b.pt>4.2){b.pt=-0.8;b.pat++;b.sub=0;return}if(b.pt<0)return;
  b.sub-=dt*rate;if(b.sub>0)return;const bs=d.bs*0.85;
- if(name==='spiral'){b.sub=0.075;b.ang+=0.37;ebullet(b.x,b.y,b.ang,bs,`hsl(${b.hue},95%,65%)`);if(rage)ebullet(b.x,b.y,b.ang+Math.PI,bs,`hsl(${b.hue},95%,65%)`)}
+ if(name==='spiral'){b.sub=0.075;b.ang+=0.37;ebullet(b.x,b.y,b.ang,bs,bh(b.hue));if(rage)ebullet(b.x,b.y,b.ang+Math.PI,bs,bh(b.hue))}
  else if(name==='double'){b.sub=0.09;b.ang+=0.29;for(let i=0;i<3;i++)ebullet(b.x,b.y,b.ang+i*TAU/3,bs*0.9,'#ff4f9a');ebullet(b.x,b.y,-b.ang*1.3,bs*0.8,'#ffb13b')}
  else if(name==='fan'){b.sub=0.65;const a=aimA(b.x,b.y),k=(b.mini?5:7)+b.idx*2;for(let i=0;i<k;i++)ebullet(b.x,b.y+b.r*0.4,a+(i-(k-1)/2)*0.14,bs*1.1,'#ffb13b',5.5)}
  else if(name==='ring'){b.sub=0.9;const k=(b.mini?14:18)+b.idx*4,o=Math.random()*TAU;for(let i=0;i<k;i++)ebullet(b.x,b.y,o+i/k*TAU,bs*0.8,'#c88cff',6.5);if(enemies.length<6)for(const s of[-1,1])addEnemy('dart',{mode:'dive',x:b.x+s*b.r,y:b.y,vx:s*60*S,vy:-80*S,noElite:1})}
  else if(name==='wall'){b.sub=0.6;const gap=Math.floor(rnd(1,8)),k=11;for(let i=0;i<k;i++){if(i>=gap&&i<=gap+2)continue;eb.push({x:W*(i+0.5)/k,y:b.y+b.r*0.3,vx:0,vy:bs*0.75,r:6*S,col:'#ff5a7a'})}}
- else if(name==='claws'){b.sub=0.45;for(const s of[-1,1]){const cx0=b.x+s*b.r*1.7,cy0=b.y+b.r*0.5,a=aimA(cx0,cy0);for(let i=-2;i<=2;i++)ebullet(cx0,cy0,a+i*0.09+s*0.05*Math.sin(b.t*3),bs*1.05,`hsl(${b.hue},95%,62%)`,5)}}
- else if(name==='serpent'){b.sub=0.11;const sg=b.segs.length?b.segs[(b.ang2=(b.ang2||0)+1)%b.segs.length]:b;ebullet(sg.x,sg.y,Math.PI/2+Math.sin(b.t*4)*0.9,bs*0.8,`hsl(${b.hue},90%,60%)`,5.5)}
- else if(name==='eye'){b.sub=0.7;const k=24+b.idx*2,o=b.t*0.6,gp=Math.floor(Math.random()*k);for(let i=0;i<k;i++){if(Math.abs(i-gp)<2)continue;ebullet(b.x,b.y,o+i/k*TAU,bs*0.7,`hsl(${b.hue2},95%,60%)`,6)}const a=aimA(b.x,b.y);for(let j=0;j<4;j++)ebullet(b.x,b.y,a,bs*(1+j*0.15),'#ffffff',4.5)}
- else if(name==='carrier'){b.sub=0.8;for(const s of[-1,1])for(let i=0;i<4;i++)ebullet(b.x+s*b.r*(0.6+i*0.35),b.y+b.r*0.4,Math.PI/2+s*0.12,bs*0.75,`hsl(${b.hue},90%,62%)`,5.5);if(enemies.length<8)for(const s of[-1,1])addEnemy('diver',{mode:'dive',x:b.x+s*b.r*1.4,y:b.y+b.r*0.3,vx:s*40*S,vy:40*S,noElite:1})}
- else if(name==='shards'){b.sub=0.16;b.ang+=0.21;for(let i=0;i<5;i++){const a=b.ang+i*TAU/5;ebullet(b.x+Math.cos(a)*b.r*0.8,b.y+Math.sin(a)*b.r*0.8,a,bs*0.75,`hsl(${(b.hue+i*14)%360},95%,66%)`,5)}}
- else if(name==='cross'){b.sub=0.12;b.ang+=0.09;for(let i=0;i<4;i++)ebullet(b.x,b.y,b.ang+i*TAU/4,bs*0.8,`hsl(${b.hue},95%,62%)`,5)}
+ else if(name==='claws'){b.sub=0.45;for(const s of[-1,1]){const cx0=b.x+s*b.r*1.7,cy0=b.y+b.r*0.5,a=aimA(cx0,cy0);for(let i=-2;i<=2;i++)ebullet(cx0,cy0,a+i*0.09+s*0.05*Math.sin(b.t*3),bs*1.05,bh(b.hue),5)}}
+ else if(name==='serpent'){b.sub=0.11;const sg=b.segs.length?b.segs[(b.ang2=(b.ang2||0)+1)%b.segs.length]:b;ebullet(sg.x,sg.y,Math.PI/2+Math.sin(b.t*4)*0.9,bs*0.8,bh(b.hue),5.5)}
+ else if(name==='eye'){b.sub=0.7;const k=24+b.idx*2,o=b.t*0.6,gp=Math.floor(Math.random()*k);for(let i=0;i<k;i++){if(Math.abs(i-gp)<2)continue;ebullet(b.x,b.y,o+i/k*TAU,bs*0.7,bh(b.hue2),6)}const a=aimA(b.x,b.y);for(let j=0;j<4;j++)ebullet(b.x,b.y,a,bs*(1+j*0.15),'#ffffff',4.5)}
+ else if(name==='carrier'){b.sub=0.8;for(const s of[-1,1])for(let i=0;i<4;i++)ebullet(b.x+s*b.r*(0.6+i*0.35),b.y+b.r*0.4,Math.PI/2+s*0.12,bs*0.75,bh(b.hue),5.5);if(enemies.length<8)for(const s of[-1,1])addEnemy('diver',{mode:'dive',x:b.x+s*b.r*1.4,y:b.y+b.r*0.3,vx:s*40*S,vy:40*S,noElite:1})}
+ else if(name==='shards'){b.sub=0.16;b.ang+=0.21;for(let i=0;i<5;i++){const a=b.ang+i*TAU/5;ebullet(b.x+Math.cos(a)*b.r*0.8,b.y+Math.sin(a)*b.r*0.8,a,bs*0.75,bh((b.hue+i*14)%360),5)}}
+ else if(name==='cross'){b.sub=0.12;b.ang+=0.09;for(let i=0;i<4;i++)ebullet(b.x,b.y,b.ang+i*TAU/4,bs*0.8,bh(b.hue),5)}
  if(b.kind===1){if(!b.segs.length)for(let i=0;i<7;i++)b.segs.push({x:b.x,y:b.y});let px=b.x,py=b.y;for(const s of b.segs){const dx=s.x-px,dy=s.y-py,dd=Math.hypot(dx,dy)||1,L=b.r*0.62;if(dd>L){s.x=px+dx/dd*L;s.y=py+dy/dd*L}s.y+=20*S*dt;px=s.x;py=s.y}}
  if(hitsShip(b.x,b.y,b.r*0.7))hurt()}
 function levelClear(){st='clear';stT=0;laserOn=false;wells.length=0;SFX.clear();R.levels++;const stars=LV.hits===0?3:LV.hits<=2?2:1;LV.stars=stars;
@@ -660,7 +661,8 @@ function screenOver(){const k=Math.min(1,stT/0.5);cx.fillStyle=`rgba(6,3,20,${0.
  if(stT>0.6){const bw=pw,by=py+ph+20*S;button(px,by,bw,54*S,'RETRY SECTOR '+R.level,()=>{initAudio();newRun(R.level)},{solid:1,def:1});
   button(px,by+66*S,(bw-12*S)/2,46*S,'HANGAR',()=>openHangar('menu'),{col:'#4dffb0',sub:aff?aff+' available':''});button(px+(bw+12*S)/2,by+66*S,(bw-12*S)/2,46*S,'STAR MAP',toMap,{});
   if(!isTouch())txt('Enter to retry, H for Hangar, Esc for Star Map',W/2,by+130*S,9.5,'#8f88c0','center','700')}}
-function drawToasts(){toasts.slice(0,2).forEach((x,i)=>{const a=x.t<0.3?x.t/0.3:x.t>2.8?(3.2-x.t)/0.4:1,y=safe.t+70*S+i*58*S-(1-a)*20*S,w=Math.min(W-40*S,320*S);cx.save();cx.globalAlpha=a;panel(W/2-w/2,y,w,50*S,'#fff27a',0.92);starIcon(W/2-w/2+26*S,y+25*S,11*S,true);txt(x.title,W/2-w/2+46*S,y+17*S,11.5,'#fff27a','left','900');txt(x.sub,W/2-w/2+46*S,y+34*S,10,'#ffffff','left','700');cx.restore()})}
+function drawToasts(){const inP=st==='play'||st==='dying';if(inP){const x=toasts[0];if(!x)return;const a=x.t<0.25?x.t/0.25:x.t>2.8?Math.max(0,(3.2-x.t)/0.4):1,s=x.title+(x.sub&&x.sub.includes('+50')?'  +50':'');cx.save();cx.globalAlpha=a*0.92;cx.font='900 '+Math.round(10.5*S)+'px '+FONT;const w=cx.measureText(s).width+40*S,y=safe.t+70*S;rr(W/2-w/2,y,w,24*S,12*S);cx.fillStyle='rgba(14,8,40,0.85)';cx.fill();cx.strokeStyle='#fff27a';cx.lineWidth=1.2*S;cx.stroke();starIcon(W/2-w/2+14*S,y+12*S,6*S,true);txt(s,W/2+8*S,y+12.5*S,10.5,'#fff27a','center','900');cx.restore();return}
+ toasts.slice(0,2).forEach((x,i)=>{const a=x.t<0.3?x.t/0.3:x.t>2.8?(3.2-x.t)/0.4:1,y=safe.t+70*S+i*58*S-(1-a)*20*S,w=Math.min(W-40*S,320*S);cx.save();cx.globalAlpha=a;panel(W/2-w/2,y,w,50*S,'#fff27a',0.92);starIcon(W/2-w/2+26*S,y+25*S,11*S,true);txt(x.title,W/2-w/2+46*S,y+17*S,11.5,'#fff27a','left','900');txt(x.sub,W/2-w/2+46*S,y+34*S,10,'#ffffff','left','700');cx.restore()})}
 function vignette(){const g=cx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.4,W/2,H/2,Math.max(W,H)*0.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,10,0.6)');cx.fillStyle=g;cx.fillRect(0,0,W,H)}
 // ---------- desktop backdrop and side panels (full window coordinates)
 function sideText(s,x,y,sz,col,al='left',wt='800'){cx.font=wt+' '+Math.round(sz)+'px '+FONT;cx.textAlign=al;cx.textBaseline='middle';cx.fillStyle=col;cx.fillText(s,x,y)}
@@ -678,7 +680,7 @@ function sidePanels(){const sw=OX;if(sw<190)return;const k=Math.min(1.25,Math.ma
  rows.forEach((r,i)=>{const yy=y+52*u+i*31*u,act=r[2]==='any'||r[2]===lastInput;cx.globalAlpha=act?1:0.45;cx.font='900 '+Math.round(11*u)+'px '+FONT;const tw=cx.measureText(r[0]).width+14*u;
   rr(lx+16*u,yy-11*u,tw,22*u,5*u);cx.fillStyle='rgba(95,232,255,0.14)';cx.fill();cx.strokeStyle='rgba(95,232,255,0.5)';cx.lineWidth=1;cx.stroke();sideText(r[0],lx+16*u+7*u,yy+1,11*u,'#dffaff','left','900');sideText(r[1],lx+16*u+tw+10*u,yy+1,12*u,'#c9c2f0','left','700');cx.globalAlpha=1});
  y+=bh+18*u;box(lx,y,pw,82*u,'#ff4fd8');sideText('TIP',lx+18*u,y+20*u,13*u,'#ff7fe4','left','900');
- const tips=['Getting hit loses ALL weapon stacks. Phantom hulls keep half.','Each weapon evolves through 5 tiers as stacks build. See the codex in the Hangar.','Rare blue + drops add a stack. Epic purple drops change your weapon and reset stacks.','Grab a drop of your own weapon to gain a stack instead.','Your whole hull can be hit. Hold Shift to see its outline.','After every sector you visit the Hangar. Gems are kept on death.','Pink P raises power. Small pink shards add a little.','Gold elites drop the best pickups.','Mini bosses guard sectors 3, 8, 13. Bosses every 5th sector.','Shielders soak damage until the blue ring pops. Medics heal allies, kill them first.','Bombs erase every bullet on screen.','Try different hulls: Titan starts with 2 stacks, Viper shoots faster.'];const tip=tips[Math.floor(t/7)%tips.length];
+ const tips=['Getting hit costs 2 weapon stacks (one tier). Phantom hulls lose only 1.','Each weapon evolves through 5 tiers as stacks build. See the codex in the Hangar.','Rare blue + drops add a stack. Epic purple drops change your weapon and reset stacks.','Grab a drop of your own weapon to gain a stack instead.','Your whole hull can be hit. Hold Shift to see its outline.','After every sector you visit the Hangar. Gems are kept on death.','Pink P raises power. Small pink shards add a little.','Gold elites drop the best pickups.','Mini bosses guard sectors 3, 8, 13. Bosses every 5th sector.','Shielders soak damage until the blue ring pops. Medics heal allies, kill them first.','Bombs erase every bullet on screen.','Try different hulls: Titan starts with 2 stacks, Viper shoots faster.'];const tip=tips[Math.floor(t/7)%tips.length];
  cx.font='700 '+Math.round(12.5*u)+'px '+FONT;const words=tip.split(' ');let line='',ly=y+44*u;for(const w2 of words){const tl=line?line+' '+w2:w2;if(cx.measureText(tl).width>pw-36*u){sideText(line,lx+18*u,ly,12.5*u,'#e6dcff','left','700');line=w2;ly+=18*u}else line=tl}sideText(line,lx+18*u,ly,12.5*u,'#e6dcff','left','700');
  // right: pilot and run status
  y=FH*0.08-20*u;box(rx,y,pw,170*u,'#4dffb0');sideText('PILOT RECORD',rx+18*u,y+24*u,15*u,'#4dffb0','left','900');
@@ -696,7 +698,7 @@ function render(dt){cx.setTransform(DPR,0,0,DPR,0,0);btns=[];navCount=0;defIdx=-
  if(st!==prevSt||paused!==prevPaused){focus=-1;prevSt=st;prevPaused=paused}
  if(wide){backdrop(dt)}
  cx.save();cx.translate(OX,0);if(wide){cx.beginPath();cx.rect(0,0,W,H);cx.clip()}
- cx.save();if(shake>0)cx.translate(rnd(-1,1)*shake*0.5*S,rnd(-1,1)*shake*0.5*S);
+ cx.save();if(shake>0&&SV.shake)cx.translate(rnd(-1,1)*shake*0.5*S*SV.shake,rnd(-1,1)*shake*0.5*S*SV.shake);
  const live=['play','dying','clear','over'].includes(st)||(st==='hangar'&&hangarCtx==='run');if(live)drawWorld(paused?0:dt);else drawBG(dt,st==='title'?1:0.5);cx.restore();vignette();
  if(flashA>0){cx.fillStyle=`rgba(255,255,255,${flashA*0.55})`;cx.fillRect(0,0,W,H)}
  if(st==='title')screenTitle();else if(st==='map')screenMap();else if(st==='hangar')screenHangar();else if(st==='awards')screenAwards();
