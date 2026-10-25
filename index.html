@@ -22,9 +22,14 @@ const ease=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
 function bez(a,b,c,d,k){const u=1-k;return{x:u*u*u*a.x+3*u*u*k*b.x+3*u*k*k*c.x+k*k*k*d.x,y:u*u*u*a.y+3*u*u*k*b.y+3*u*k*k*c.y+k*k*k*d.y}}
 let QUAL=2,qualAuto=true,sndBudget=40;const QNAMES=['LOW','MEDIUM','HIGH'];const SB=v=>QUAL===2?v:QUAL===1?v*0.5:0;const PCAP=()=>[220,500,900][QUAL];
 const SAVEKEY='novastrike_save_v3',V2KEY='novastrike_save_v2',OLDKEY='novastrike_save_v1';
-const defSave=()=>({ver:3,gems:0,unlocked:1,stars:{},up:{power:0,shots:0,rate:0,hull:0,magnet:0,bomb:0,drone:0,shield:0,greed:0},w:{blaster:1,laser:0,plasma:0,rail:0,flak:0,flame:0,missile:0,chain:0,blades:0,mines:0,grav:0,discs:0},pri:'blaster',sec:'none',hulls:{striker:1},hull:'striker',ach:{},best:0,kills:0,bosses:0,deaths:0,maxLevel:0,bought:0,muted:false,qual:-1,dmgNum:false,elites:0,shake:1,music:1,sfx:1,tut:{}});
+const defSave=()=>({ver:4,gems:0,unlocked:1,stars:{},up:{power:0,shots:0,rate:0,hull:0,magnet:0,bomb:0,drone:0,shield:0,greed:0},w:{blaster:1,laser:0,plasma:0,rail:0,flak:0,flame:0,missile:0,chain:0,blades:0,mines:0,grav:0,discs:0},pri:'blaster',sec:'none',hulls:{striker:1},hull:'striker',ach:{},best:0,kills:0,bosses:0,deaths:0,maxLevel:0,bought:0,muted:false,qual:-1,dmgNum:false,elites:0,shake:1,music:1,sfx:1,tut:{}});
 let SV,migrateNote=null;
-function mergeSave(o){const d=defSave();const r=Object.assign(d,o);r.up=Object.assign(defSave().up,o.up||{});r.w=Object.assign(defSave().w,o.w||{});r.hulls=Object.assign({striker:1},o.hulls||{});r.ver=3;if(!o.tut)r.tut=(o.maxLevel||0)>=3?{move:1,gem:1,p:1,P:1,'+':1,W:1,S:1,B:1,H:1}:{};if(!r.w[r.pri])r.pri='blaster';if(r.sec!=='none'&&!r.w[r.sec])r.sec='none';if(!r.hulls[r.hull])r.hull='striker';return r}
+function mergeSave(o){const d=defSave();const r=Object.assign(d,o);r.up=Object.assign(defSave().up,o.up||{});r.w=Object.assign(defSave().w,o.w||{});r.hulls=Object.assign({striker:1},o.hulls||{});r.ver=3;if(!o.tut)r.tut=(o.maxLevel||0)>=3?{move:1,gem:1,p:1,P:1,'+':1,W:1,S:1,B:1,H:1}:{};if(!r.w[r.pri])r.pri='blaster';if(r.sec!=='none'&&!r.w[r.sec])r.sec='none';if(!r.hulls[r.hull])r.hull='striker';if((o.ver||0)<4)capSave(r);r.ver=4;return r}
+// v4 caps permanent upgrades; levels above the new caps are refunded at the old v3 prices
+const CAP4={power:10,shots:2,rate:6,hull:3,shield:3,bomb:2,drone:2,magnet:4,greed:5},OLD3={power:[30,34,1.25],shots:[3,140,2],rate:[8,50,1.4],hull:[5,90,1.7],shield:[3,150,1.8],bomb:[3,110,1.7],drone:[2,260,1.8],magnet:[5,35,1.5],greed:[5,120,1.6]};
+function capSave(r){let ref=0;for(const k in CAP4){const l=r.up[k]||0,o=OLD3[k];for(let i=CAP4[k];i<l;i++)ref+=Math.round(o[1]*Math.pow(o[2],Math.min(i,o[0]))*Math.pow(Math.max(o[2],1.3)*1.05,Math.max(0,i-o[0])));r.up[k]=Math.min(l,CAP4[k])}
+ const UL={blaster:0,laser:300,plasma:450,rail:650,flak:550,flame:800,missile:220,chain:380,blades:420,mines:360,grav:700,discs:500};for(const id in r.w){const l=r.w[id]||0;for(let i=5;i<l;i++)ref+=Math.round(Math.max(150,UL[id]||0)*0.55*Math.pow(1.6,i));if(l>5)r.w[id]=5}
+ r.gems=(r.gems||0)+ref;if(ref)migrateNote={title:'BALANCE UPDATE',sub:'Upgrades now have caps. '+ref+' gems refunded',t:0}}
 try{const raw=localStorage.getItem(SAVEKEY),raw2=localStorage.getItem(V2KEY);
  if(raw)SV=mergeSave(JSON.parse(raw));
  else if(raw2){SV=mergeSave(JSON.parse(raw2));migrateNote={title:'SAVE UPGRADED TO V3',sub:'Gems and unlocks kept. 6 new weapons and 2 hulls in the Hangar',t:0}}
@@ -33,16 +38,16 @@ try{const raw=localStorage.getItem(SAVEKEY),raw2=localStorage.getItem(V2KEY);
 }catch(e){SV=defSave()}
 const save=()=>{try{localStorage.setItem(SAVEKEY,JSON.stringify(SV))}catch(e){}};save();
 const SHOP=[
- {k:'power',name:'Power Core',desc:'+0.15 base power (damage)',max:30,base:34,g:1.25,col:'#ff4fd8'},
- {k:'shots',name:'Multi Barrel',desc:'+1 starting shot stream',max:3,base:140,g:2.0,col:'#5fe8ff'},
- {k:'rate',name:'Rapid Coils',desc:'+8% fire rate',max:8,base:50,g:1.4,col:'#ffb13b'},
- {k:'hull',name:'Hull Plating',desc:'+1 max hull',max:5,base:90,g:1.7,col:'#7cff6b'},
+ {k:'power',name:'Power Core',desc:'+5% damage',max:10,base:60,g:1.28,col:'#ff4fd8'},
+ {k:'shots',name:'Multi Barrel',desc:'+1 starting weapon stack',max:2,base:220,g:2.2,col:'#5fe8ff'},
+ {k:'rate',name:'Rapid Coils',desc:'+5% fire rate',max:6,base:70,g:1.35,col:'#ffb13b'},
+ {k:'hull',name:'Hull Plating',desc:'+1 max hull',max:3,base:120,g:1.8,col:'#7cff6b'},
  {k:'shield',name:'Barrier',desc:'Shield each sector, recharges',max:3,base:150,g:1.8,col:'#8fd3ff'},
- {k:'bomb',name:'Nova Bombs',desc:'+1 bomb each sector',max:3,base:110,g:1.7,col:'#ff6a4d'},
+ {k:'bomb',name:'Nova Bombs',desc:'+1 bomb each sector',max:2,base:110,g:1.7,col:'#ff6a4d'},
  {k:'drone',name:'Wingman',desc:'+1 escort drone',max:2,base:260,g:1.8,col:'#b48cff'},
- {k:'magnet',name:'Gem Magnet',desc:'+30% pickup radius',max:5,base:35,g:1.5,col:'#4dffb0'},
- {k:'greed',name:'Gem Scanner',desc:'+10% gems collected',max:5,base:120,g:1.6,col:'#fff27a'}];
-const OVG=1.3,cost=(it)=>{const l=SV.up[it.k];return Math.round(it.base*Math.pow(it.g,Math.min(l,it.max))*Math.pow(Math.max(it.g,OVG)*1.05,Math.max(0,l-it.max)))},OV=k=>{const it=SHOP.find(i=>i.k===k);return Math.max(0,SV.up[k]-it.max)};
+ {k:'magnet',name:'Gem Magnet',desc:'+30% pickup radius',max:4,base:35,g:1.5,col:'#4dffb0'},
+ {k:'greed',name:'Gem Scanner',desc:'+8% gems collected',max:5,base:120,g:1.6,col:'#fff27a'}];
+const cost=(it)=>Math.round(it.base*Math.pow(it.g,SV.up[it.k]));
 // tier = visible stack stage, 1..5 (stacks 1-2, 3-4, 5-6, 7-8, 9-10)
 const MAXST=10,TIER=n=>Math.min(5,Math.max(1,Math.ceil(n/2))),ROMAN=['','I','II','III','IV','V'];
 const WEAP={
@@ -60,7 +65,7 @@ const WEAP={
  discs:{name:'Ricochet Discs',slot:'sec',col:'#4dffe0',desc:'Bouncing discs pierce everything. Stacks add discs',unlock:500,tiers:['1 disc','More bounces','2 discs','Faster discs','3 discs, many bounces']}};
 // v4 per-weapon damage normalisation (see sim/dps.js): effective DPS within ~±15% per slot
 const WB={blaster:1.46,laser:1.1,plasma:0.52,rail:0.61,flak:1.95,flame:0.76,missile:1.16,chain:0.83,blades:1.85,mines:0.63,grav:1.29,discs:0.51};
-const WMAX=5,WVIS=l=>Math.min(l,8),wMul=l=>1+0.3*(Math.max(1,l)-1),wCost=id=>{const l=SV.w[id];return l?Math.round(Math.max(150,WEAP[id].unlock)*0.55*Math.pow(1.6,l)):WEAP[id].unlock};
+const WMAX=5,WVIS=l=>Math.min(l,8),wMul=l=>1+0.1*(Math.min(WMAX,Math.max(1,l))-1),wCost=id=>{const l=SV.w[id];return l?Math.round(Math.max(150,WEAP[id].unlock)*0.55*Math.pow(1.6,l)):WEAP[id].unlock};
 const HULLS={
  striker:{name:'Striker',desc:'Balanced all-rounder',cost:0,hull:0,bomb:0,rate:1,speed:1,hb:1,col:'#5fe8ff',acc:'#ff4fd8'},
  bulwark:{name:'Bulwark',desc:'+2 hull, +1 bomb, slower, bigger',cost:600,hull:2,bomb:1,rate:1,speed:0.85,hb:1.15,col:'#7cff6b',acc:'#ffb13b'},
@@ -165,20 +170,26 @@ const ET={
  healer:{hp:6,r:16,col:'#4dffb0',score:250,gem:3,fire:0,from:9,label:'Medic: repairs nearby enemies'}};
 const BOSSN=['WARDEN','HYDRA','ECLIPSE','LEVIATHAN','OMEGA'],BOSSK=[{t:'The Iron Claw',h:8,h2:30,sig:'claws'},{t:'Serpent of the Void',h:135,h2:85,sig:'serpent'},{t:'The Burning Eye',h:45,h2:15,sig:'eye'},{t:'Carrier Dreadnought',h:205,h2:180,sig:'carrier'},{t:'Fractal Singularity',h:295,h2:330,sig:'shards'},{t:'Guardian Drone',h:175,h2:40,sig:'cross'}],TINT=[0,150,250,60];
 const HPG=1.25;const hpMul=n=>Math.pow(HPG,n-1);
-const diff=()=>{const n=LV.n;return{hp:hpMul(n),fire:1+(n-1)*0.08,bs:Math.min(380,150+n*10)*S,n}};
+// rank rises when your firepower is ahead of the curve for this sector (never below 1, so struggling is not punished)
+const firePow=()=>curPow()*wMul(priLvl())*rateMul()*Math.pow(curShots(),0.9)*(1+0.12*PK('crit'))*(1+0.2*(Math.min(2,U('drone'))+PK('drone')));
+const refPow=n=>Math.pow(Math.min(10,1+1.1*(n-1)),0.9)*(1.15+0.05*(n-1));
+function setRank(){LV.rank=clamp(Math.sqrt(firePow()/refPow(LV.n)),1,1.7)}
+const diff=()=>{const n=LV.n,rk=LV.rank||1;return{hp:hpMul(n)*rk,fire:(1+(n-1)*0.08)*(1+(rk-1)*0.6),bs:Math.min(380,150+n*10)*S*(1+(rk-1)*0.25),n,rk}};
 // derived stats
 const U=k=>SV.up[k]||0,hullDef=()=>HULLS[SV.hull]||HULLS.striker;
-const ovMul=()=>1+0.05*(OV('shots')+OV('drone')+OV('shield')+OV('bomb')+OV('hull'))+0.04*Math.max(0,U('rate')-16),basePow=()=>(1+0.15*U('power'))*ovMul(),curPow=()=>(basePow()+(R?R.pg:0))*(hullDef().pow||1)*(1+0.12*PK('dmg'));
-const baseShots=()=>1+Math.min(3,U('shots')),curShots=()=>Math.min(MAXST,baseShots()+(R?R.sg:0));
-const maxHull=()=>Math.max(1,3+Math.min(5,U('hull'))+hullDef().hull+PK('hp')),rateMul=()=>(1+0.08*Math.min(16,U('rate')))*hullDef().rate*(1+0.1*PK('rate')),gemMul=()=>(1+0.1*U('greed'))*(1+0.25*PK('greed'));
+// perks repeat with diminishing returns so stacking one perk never runs away
+const PKD=[0,.2,.36,.48,.58,.66],PKR=[0,.12,.22,.3,.36];
+const basePow=()=>1+0.05*Math.min(10,U('power')),curPow=()=>(basePow()+(R?R.pg:0))*(hullDef().pow||1)*(1+PKD[PK('dmg')]+0.4*PK('glass'));
+const baseShots=()=>1+Math.min(2,U('shots')),curShots=()=>Math.min(MAXST,baseShots()+(R?R.sg:0));
+const maxHull=()=>Math.max(1,3+Math.min(3,U('hull'))+hullDef().hull+PK('hp')-PK('glass')),rateMul=()=>(1+0.05*Math.min(6,U('rate')))*hullDef().rate*(1+PKR[PK('rate')]+0.25*PK('over')),gemMul=()=>(1+0.08*U('greed'))*(1+0.25*PK('greed'));
 // run perks: pick 1 of 3 after every sector, they last for the current run only
 const PERKS=[
- {id:'dmg',n:'Overcharge',d:'+12% damage',max:9,col:'#ff4fd8',ic:'D'},
- {id:'rate',n:'Hair Trigger',d:'+10% fire rate',max:6,col:'#ffb13b',ic:'R'},
- {id:'crit',n:'Lucky Shot',d:'+8% chance for x2.5 damage',max:5,col:'#fff27a',ic:'!'},
+ {id:'dmg',n:'Overcharge',d:'+20% damage, less for each repeat',max:5,col:'#ff4fd8',ic:'D'},
+ {id:'rate',n:'Hair Trigger',d:'+12% fire rate, less for each repeat',max:4,col:'#ffb13b',ic:'R'},
+ {id:'crit',n:'Lucky Shot',d:'+8% chance for x2.5 damage',max:3,col:'#fff27a',ic:'!'},
  {id:'hp',n:'Patch Kit',d:'+1 max hull and repair 1 now',max:2,col:'#7cff6b',ic:'+'},
  {id:'bomb',n:'Ordnance',d:'+1 bomb every sector',max:3,col:'#ff6a4d',ic:'B'},
- {id:'stack',n:'Overclock',d:'+2 weapon stacks now',max:9,col:'#4da6ff',ic:'^'},
+ {id:'stack',n:'Overclock',d:'+2 weapon stacks now',max:3,col:'#4da6ff',ic:'^'},
  {id:'shield',n:'Aegis',d:'Shield each sector, recharges faster',max:3,col:'#8fd3ff',ic:'S'},
  {id:'slow',n:'Time Dilation',d:'Enemy bullets 8% slower',max:3,col:'#9d7bff',ic:'T'},
  {id:'drone',n:'Escort',d:'+1 wingman drone',max:2,col:'#b48cff',ic:'W'},
@@ -186,10 +197,12 @@ const PERKS=[
  {id:'greed',n:'Prospector',d:'+25% gems this run',max:4,col:'#4dffb0',ic:'$'},
  {id:'vamp',n:'Salvage',d:'Repair 1 hull every 40 kills',max:2,col:'#7cff6b',ic:'V'},
  {id:'ward',n:'Last Stand',d:'Once per sector, survive a fatal hit',max:1,col:'#ff3b5c',ic:'L'},
- {id:'combo',n:'Momentum',d:'Combos last longer, +1 max multiplier',max:2,col:'#ff9a3c',ic:'C'}];
+ {id:'combo',n:'Momentum',d:'Combos last longer, +1 max multiplier',max:2,col:'#ff9a3c',ic:'C'},
+ {id:'glass',n:'Glass Cannon',d:'+40% damage, but -1 max hull',max:1,col:'#ff3b5c',ic:'G',risk:1},
+ {id:'over',n:'Overdrive',d:'+25% fire rate, enemy bullets 10% faster',max:1,col:'#ff3b5c',ic:'O',risk:1}];
 const PK=id=>R&&R.pk?R.pk[id]||0:0;
 function rollPerks(){const ok=PERKS.filter(p=>PK(p.id)<p.max&&!(p.id==='stack'&&curShots()>=MAXST)),out=[];while(out.length<3&&ok.length)out.push(ok.splice(Math.floor(Math.random()*ok.length),1)[0]);return out}
-function takePerk(p){R.pk[p.id]=PK(p.id)+1;if(p.id==='hp')ship.hull=Math.min(maxHull(),ship.hull+1);if(p.id==='stack')R.sg=Math.min(MAXST-baseShots(),R.sg+2);SFX.power();openHangar('run')}
+function takePerk(p){R.pk[p.id]=PK(p.id)+1;if(p.id==='hp')ship.hull=Math.min(maxHull(),ship.hull+1);if(p.id==='glass')ship.hull=Math.min(ship.hull,maxHull());if(p.id==='stack')R.sg=Math.min(MAXST-baseShots(),R.sg+2);SFX.power();openHangar('run')}
 function openPerks(){if(st!=='clear')return;R.offer=rollPerks();pb=[];rails=[];zaps=[];if(!R.offer.length){openHangar('run');return}st='perk';stT=0}
 const priW=()=>R&&R.tw?R.tw.id:SV.pri,priLvl=()=>Math.max(1,SV.w[priW()]||0);
 function newRun(n){R={pk:{},kc:0,start:n,level:n,pg:0,sg:0,score:0,gems:0,combo:0,comboT:0,maxCombo:0,levels:0,tw:null,elites:0};ship=null;startLevel(n)}
@@ -207,7 +220,7 @@ function addEnemy(type,o){const d=diff(),def=ET[type];const e=Object.assign({typ
  if(!o.noElite&&type!=='tank'&&d.n>=3&&Math.random()<Math.min(0.16,0.04+d.n*0.008)){e.elite=1;e.hp*=3;e.fire=def.fire||2.2;e.pat=def.pat||'aim'}
  e.fire=e.fire||def.fire;e.pat=e.pat||def.pat;e.maxhp=e.hp;if(type==='shielder'){e.sh=e.shMax=Math.ceil(e.hp*1.2);e.shT=0}e.abT=rnd(1.5,3);enemies.push(e);return e}
 function pool(n){const p=['dart','dart','weaver'];if(n>=2)p.push('weaver','splitter');if(n>=3)p.push('gunner');if(n>=4)p.push('shielder');if(n>=5)p.push('tele');if(n>=6)p.push('gunner','miner');if(n>=7)p.push('sniper');if(n>=9)p.push('healer','shielder');return p}
-function spawnWave(){const n=LV.n,i=LV.waveIdx++;LV.waveT=0;
+function spawnWave(){const n=LV.n,i=LV.waveIdx++;LV.waveT=0;setRank();
  let avail=['swoop','swoop','column'];if(n>=2)avail.push('rain');if(n>=3)avail.push('cross');if(n>=4)avail.push('heavy','heavy');
  const ty=i===0?'swoop':pick(avail),P=pool(n),top=safe.t+70*S;
  if(ty==='swoop'){const rows=clamp(1+Math.floor((n+i)/3),1,4),cols=n<3?5:6,side=Math.random()<.5;
@@ -218,11 +231,11 @@ function spawnWave(){const n=LV.n,i=LV.waveIdx++;LV.waveT=0;
  else if(ty==='cross'){const cnt=5+Math.min(6,n);for(let k=0;k<cnt*2;k++){const fl=k%2;addEnemy(k%4===3&&n>=5?'gunner':'dart',{mode:'pass',delay:Math.floor(k/2)*0.4,x:fl?-30*S:W+30*S,y:top+H*(fl?0.12:0.22),vx:(fl?1:-1)*(150+n*5)*S,vy:14*S})}}
  else if(ty==='heavy'){const nt=1+Math.min(2,Math.floor(n/6));for(let k=0;k<nt;k++){const sx=W*(nt===1?0.5:0.25+0.5*k/(nt-1));addEnemy('tank',{mode:'enter',delay:k*0.6,p0:{x:sx,y:-60*S},c1:{x:sx,y:top},c2:{x:sx,y:top+H*0.05},p3:{x:sx,y:top+H*0.08},dur:2.2,hold:99})}
   for(let c=0;c<4;c++){const sx=W*(0.15+0.7*c/3);addEnemy(pick(P),{mode:'enter',delay:1+c*0.15,p0:{x:c<2?-30*S:W+30*S,y:H*0.3},c1:{x:W/2,y:H*0.5},c2:{x:sx,y:top+H*0.3},p3:{x:sx,y:top+H*0.2},dur:1.6,hold:rnd(4,9)})}}}
-function spawnBoss(){const n=LV.n,mini=LV.mini,idx=Math.max(0,Math.floor(n/5)-1);const hp=Math.round(420*hpMul(n)*(1+idx*0.15)*(mini?0.4:1));
+function spawnBoss(){const n=LV.n,mini=LV.mini,idx=Math.max(0,Math.floor(n/5)-1);setRank();const hp=Math.round(420*hpMul(n)*LV.rank*(1+idx*0.15)*(mini?0.4:1));
  const kind=mini?5:idx%5,cyc=mini?Math.max(0,Math.ceil(n/5)-1):Math.floor(idx/5),K=BOSSK[kind],th=TINT[cyc%4];
  boss={kind,cyc,title:K.t+(cyc?' - ELITE':''),sig:K.sig,hue2:(K.h2+th)%360,segs:[],x:W/2,y:-140*S,ty:safe.t+H*(mini?0.17:0.2),hp,maxhp:hp,t:0,pt:0,pat:0,ang:0,sub:0,mini,name:mini?'SENTINEL '+Math.ceil(n/5):BOSSN[idx%5]+(idx>=5?' '+(Math.floor(idx/5)+1):''),hue:(K.h+th)%360,fl:0,r:(mini?40:58)*S,enter:true,dying:0,idx:mini?Math.max(0,idx-1):idx,arms:mini?3:5+idx%3};
  SFX.alarm();banner('WARNING',(mini?'MINI BOSS: ':'BOSS: ')+boss.name+'  //  '+boss.title,mini?'#ffb13b':'#ff3b5c');shake=10}
-function ebullet(x,y,a,sp,col='#ff4f9a',r=5){sp*=1-0.08*PK('slow');eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:r*S,col})}
+function ebullet(x,y,a,sp,col='#ff4f9a',r=5){sp*=(1-0.08*PK('slow'))*(1+0.1*PK('over'));eb.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:r*S,col})}
 const bh=h=>`hsl(${Math.round(300+(((h%360)+360)%360)/360*110)%360},100%,64%)`;
 const aimA=(x,y)=>Math.atan2(ship.y-y,ship.x-x);
 function enemyFire(e){const d=diff(),a=aimA(e.x,e.y);
@@ -247,7 +260,7 @@ function dropAt(x,y,type,v=1,wid){pickups.push({x,y,type,v,wid,vx:rnd(-60,60)*S,
 // weapon drop: 35% your current primary (gives a stack), else another primary
 function dropW(x,y){const cur=priW(),o=Object.keys(WEAP).filter(k=>WEAP[k].slot==='pri'&&k!==cur);dropAt(x,y,'W',1,Math.random()<0.35?cur:pick(o))}
 const RAR={gem:0,p:0,P:1,S:1,B:1,H:1,'+':2,W:3},RCOL=['#cfd8ff','#7cff6b','#4da6ff','#d36bff'],RNAME=['COMMON','UNCOMMON','RARE','EPIC'];
-const gemVal=()=>1.5*Math.pow(1.2,LV.n-1)*gemMul();
+const gemVal=()=>1.5*(1+0.12*(LV.n-1))*gemMul();
 function killEnemy(e){if(e.dead)return;e.dead=1;LV.kills++;SV.kills++;R.combo++;R.comboT=1.6*(1+0.5*PK('combo'));R.kc++;if(PK('vamp')&&R.kc%(PK('vamp')>1?28:40)===0&&ship.hull<maxHull()){ship.hull++;ftext(ship.x,ship.y-40*S,'SALVAGE +1 HULL','#7cff6b',12)}R.maxCombo=Math.max(R.maxCombo,R.combo);if(R.combo>=50)ach('combo50');
  if(e.elite||e.type==='tank'){hitStop=Math.max(hitStop,0.035);ring(e.x,e.y,'#ffffff',8,90,0.35,4)}if(R.combo%25===0){SFX.combo();ring(ship.x,ship.y,'#fff27a',10,110,0.5,4);ftext(ship.x,ship.y-56*S,R.combo+' COMBO!','#fff27a',16)}
  const sc=Math.round(e.def.score*mult()*(e.elite?3:1));R.score+=sc;ftext(e.x,e.y,''+sc,e.elite?'#fff27a':'#ffffff',11);explode(e.x,e.y,e.elite?'#fff27a':e.def.col,e.type==='tank'?2.2:e.elite?1.6:1);
@@ -680,9 +693,9 @@ let endArm=0;function screenHangar(){cx.fillStyle='rgba(6,3,20,0.62)';cx.fillRec
  const y0=top+124*S,yb=H-safe.b-(run?132:84)*S,x0=safe.l+14*S,w=W-safe.l-safe.r-28*S;
  const row=(y,rh,col)=>{rr(x0,y+3*S,w,rh-6*S,12*S);cx.fillStyle='rgba(16,10,44,0.85)';cx.fill();cx.strokeStyle=col+'88';cx.lineWidth=1.2*S;cx.stroke()};
  const pips=(x,y,lv,max,col)=>{const n=Math.min(max,10),pw2=Math.min(9,100/n)*S;for(let k=0;k<n;k++){cx.fillStyle=k<(max>10?Math.round(lv/max*10):lv)?col:'rgba(255,255,255,0.12)';rr(x+k*(pw2+3*S),y,pw2,4*S,1.5*S);cx.fill()}};
- if(hangarTab===0){const rh=Math.min(64*S,(yb-y0)/SHOP.length);SHOP.forEach((it,i)=>{const y=y0+i*rh,lv=SV.up[it.k],mx=false,c=cost(it),can=!mx&&SV.gems>=c,iy=y+rh/2;row(y,rh,it.col);hexIcon(x0+24*S,iy,12*S,it.col,it.name[0]);
-  txt(it.name,x0+46*S,iy-10*S,13.5,'#ffffff','left','900');txt(it.k==='power'?'Base power '+basePow().toFixed(2)+'  (+0.15)':it.desc,x0+46*S,iy+4*S,10,'#a9a2d8','left','700');
-  if(1)txt('LV '+lv+(lv>=it.max&&['shots','drone','shield','bomb','hull'].includes(it.k)?'  +5% DMG/LV':''),x0+46*S,iy+15*S,9,it.col,'left','900');else pips(x0+46*S,iy+13*S,lv,it.max,it.col);
+ if(hangarTab===0){const rh=Math.min(64*S,(yb-y0)/SHOP.length);SHOP.forEach((it,i)=>{const y=y0+i*rh,lv=SV.up[it.k],mx=lv>=it.max,c=cost(it),can=!mx&&SV.gems>=c,iy=y+rh/2;row(y,rh,it.col);hexIcon(x0+24*S,iy,12*S,it.col,it.name[0]);
+  txt(it.name,x0+46*S,iy-10*S,13.5,'#ffffff','left','900');txt(it.desc,x0+46*S,iy+4*S,10,'#a9a2d8','left','700');
+  pips(x0+46*S,iy+13*S,lv,it.max,it.col);
   button(x0+w-88*S,iy-16*S,80*S,32*S,mx?'MAX':''+c,()=>{if(SV.gems>=c&&!mx){SV.gems-=c;SV.up[it.k]++;buyFx(x0+w-48*S,iy,it.col)}},{solid:can,col:can?it.col:'#6b6488',col2:can?it.col:undefined,dis:!can,sz:13.5});if(!mx)gemIcon(x0+w-96*S,iy,5)})}
  else if(hangarTab===1&&codexId){const wd=WEAP[codexId],lv=SV.w[codexId]||0,cy=y0+4*S,ch=yb-y0-8*S;row(cy-3*S,ch+6*S,wd.col);hexIcon(x0+28*S,cy+26*S,15*S,wd.col,wd.slot==='pri'?'1':'2',t*0.3);
   txt(wd.name.toUpperCase(),x0+52*S,cy+18*S,16,'#ffffff','left','900');txt('CODEX  |  '+(wd.slot==='pri'?'PRIMARY':'SECONDARY')+'  |  '+(lv?'LEVEL '+lv+'  (x'+wMul(lv).toFixed(1)+' damage)':'LOCKED'),x0+52*S,cy+36*S,9,wd.col,'left','900');
@@ -693,10 +706,10 @@ let endArm=0;function screenHangar(){cx.fillStyle='rgba(6,3,20,0.62)';cx.fillRec
    for(let k=0;k<=i;k++){cx.globalCompositeOperation='lighter';glow(x0+w-30*S-k*10*S,yy+(th-6*S)/2,6*S,wd.col,0.8);cx.globalCompositeOperation='source-over'}});
   button(W/2-80*S,yb-40*S,160*S,34*S,'CLOSE CODEX',()=>{codexId=null},{def:1,sz:12})}
  else if(hangarTab===1){const sub=['PRIMARY','SECONDARY'];sub.forEach((n,i)=>button(x0+i*(w/2)+2*S,y0,w/2-4*S,26*S,n,()=>{wSub=i},{sz:10.5,solid:wSub===i,col:i?'#ffb13b':'#ff4fd8',col2:i?'#a87020':'#a0308a'}));
-  const ids=Object.keys(WEAP).filter(k=>WEAP[k].slot===(wSub?'sec':'pri')),y1=y0+32*S,rh=Math.min(84*S,(yb-y1)/ids.length);ids.forEach((id,i)=>{const wd=WEAP[id],lv=SV.w[id]||0,y=y1+i*rh,iy=y+rh/2,c=wCost(id),mx=false,can=!mx&&SV.gems>=c;row(y,rh,wd.col);
+  const ids=Object.keys(WEAP).filter(k=>WEAP[k].slot===(wSub?'sec':'pri')),y1=y0+32*S,rh=Math.min(84*S,(yb-y1)/ids.length);ids.forEach((id,i)=>{const wd=WEAP[id],lv=SV.w[id]||0,y=y1+i*rh,iy=y+rh/2,c=wCost(id),mx=lv>=WMAX,can=!mx&&SV.gems>=c;row(y,rh,wd.col);
   reg(x0,y+3*S,w-96*S,rh-6*S,()=>{codexId=id},{nonav:true});
   hexIcon(x0+24*S,iy,13*S,wd.col,wd.slot==='pri'?'1':'2',t*0.3);txt(wd.name,x0+46*S,iy-16*S,13.5,'#ffffff','left','900');txt(wd.desc.split('.')[0],x0+46*S,iy-2*S,9.5,'#a9a2d8','left','700');
-  if(lv)txt('LV '+lv,x0+46*S,iy+13*S,9,wd.col,'left','900');else txt('LOCKED',x0+46*S,iy+13*S,8.5,'#6b6488','left','900');txt('i  CODEX',x0+112*S,iy+13*S,8.5,wd.col,'left','900');
+  if(lv)txt('LV '+lv+' / '+WMAX,x0+46*S,iy+13*S,9,wd.col,'left','900');else txt('LOCKED',x0+46*S,iy+13*S,8.5,'#6b6488','left','900');txt('i  CODEX',x0+112*S,iy+13*S,8.5,wd.col,'left','900');
   const eq=wd.slot==='pri'?SV.pri===id:SV.sec===id;
   button(x0+w-88*S,iy-(lv?30:14)*S,80*S,28*S,mx?'MAX':(lv?'LV UP ':'')+c,()=>{if(SV.gems>=c&&!mx){SV.gems-=c;SV.w[id]=lv+1;if(!lv){if(wd.slot==='sec'&&SV.sec==='none')SV.sec=id}if(Object.keys(WEAP).every(k=>SV.w[k]))ach('weapons');buyFx(x0+w-48*S,iy,wd.col)}},{solid:can,col:can?wd.col:'#6b6488',col2:can?wd.col:undefined,dis:!can,sz:11.5});
   if(lv)button(x0+w-88*S,iy+3*S,80*S,26*S,eq?(wd.slot==='sec'?'UNEQUIP':'EQUIPPED'):'EQUIP',()=>{if(wd.slot==='pri'){if(run&&priW()!==id){R.sg=hullDef().stack||0;toasts.push({title:'PRIMARY CHANGED',sub:'Run stacks reset to '+R.sg,t:0})}if(R)R.tw=null;SV.pri=id}else SV.sec=eq?'none':id;save()},{dis:eq&&wd.slot==='pri'&&!(R&&R.tw),col:eq?'#ffffff':wd.col,sz:11})});
@@ -727,7 +740,7 @@ function perkCard(x,y,w,h,p,fn,i){const o=reg(x,y,w,h,fn,{def:i===0}),on=o.on,k=
  if(on){cx.translate(x+w/2,y+h/2);cx.scale(1.03,1.03);cx.translate(-x-w/2,-y-h/2)}cx.shadowColor=p.col;cx.shadowBlur=SB((on?28:12)*S);rr(x,y,w,h,16*S);const g=cx.createLinearGradient(x,0,x+w,0);g.addColorStop(0,on?'rgba(60,36,120,0.97)':'rgba(24,14,60,0.95)');g.addColorStop(1,'rgba(10,6,30,0.95)');cx.fillStyle=g;cx.fill();cx.shadowBlur=SB(0);cx.strokeStyle=on?'#ffffff':p.col;cx.lineWidth=(on?2.4:1.6)*S;cx.stroke();
  hexIcon(x+34*S,y+h/2,17*S,p.col,p.ic,t*0.4);const lv=PK(p.id);txt(p.n.toUpperCase(),x+64*S,y+h/2-11*S,15.5,'#ffffff','left','900');txt(p.d,x+64*S,y+h/2+9*S,10.5,'#c9c2f0','left','700');
  if(p.max>1)for(let k2=0;k2<p.max;k2++){cx.fillStyle=k2<lv?p.col:k2===lv?'#ffffff':'rgba(255,255,255,0.14)';rr(x+64*S+k2*11*S,y+h/2+22*S,8*S,3.5*S,1.5*S);cx.fill()}
- if(lv)txt('OWNED x'+lv,x+w-14*S,y+16*S,8.5,p.col,'right','900');cx.restore();if(o.foc)focusRing(x,y,w,h,16*S)}
+ if(lv)txt('OWNED x'+lv,x+w-14*S,y+16*S,8.5,p.col,'right','900');else if(p.risk)txt('TRADE-OFF',x+w-14*S,y+16*S,8.5,'#ff3b5c','right','900');cx.restore();if(o.foc)focusRing(x,y,w,h,16*S)}
 function screenPerk(){const k=Math.min(1,stT/0.3);cx.fillStyle=`rgba(6,3,20,${0.72*k})`;cx.fillRect(0,0,W,H);const top=safe.t+H*0.14;
  txt('CHOOSE A PERK',W/2,top,26,'#fff27a','center','900',16);txt('Sector '+R.level+' cleared. Perks last for this run',W/2,top+26*S,10.5,'#a9a2d8','center','700');
  const x0=safe.l+16*S,w=W-safe.l-safe.r-32*S,ch=Math.min(92*S,(H-top-170*S)/3);R.offer.forEach((p,i)=>perkCard(x0,top+52*S+i*(ch+14*S),w,ch,p,()=>{if(stT>0.5)takePerk(p)},i));
@@ -739,7 +752,7 @@ function screenOver(){const k=Math.min(1,stT/0.5);cx.fillStyle=`rgba(6,3,20,${0.
  txt('SCORE',W/2,py+100*S,11,'#a9a2d8','center','800');txt(Math.floor(R.score).toLocaleString('en-US'),W/2,py+130*S,38,'#ffffff','center','900',14);
  txt(R.newBest?'NEW BEST!':'BEST '+SV.best.toLocaleString('en-US'),W/2,py+164*S,14,'#fff27a','center','900',R.newBest?12:0);
  const st2=(l,v,x,col)=>{txt(v,x,py+204*S,20,col,'center','900');txt(l,x,py+226*S,10,'#a9a2d8','center','800')};st2('GEMS EARNED','+'+R.gems,W/2-pw/3,'#4dffb0');st2('MAX COMBO',''+R.maxCombo,W/2,'#fff27a');st2('BANK',''+SV.gems,W/2+pw/3,'#4dffb0');
- const aff=SHOP.filter(it=>cost(it)<=SV.gems).length+Object.keys(WEAP).filter(id=>wCost(id)<=SV.gems).length;txt(aff?aff+' hangar upgrade'+(aff>1?'s':'')+' affordable now':'Collect more gems to unlock upgrades',W/2,py+262*S,12,aff?'#4dffb0':'#a9a2d8','center','800');
+ const aff=SHOP.filter(it=>SV.up[it.k]<it.max&&cost(it)<=SV.gems).length+Object.keys(WEAP).filter(id=>(SV.w[id]||0)<WMAX&&wCost(id)<=SV.gems).length;txt(aff?aff+' hangar upgrade'+(aff>1?'s':'')+' affordable now':'Collect more gems to unlock upgrades',W/2,py+262*S,12,aff?'#4dffb0':'#a9a2d8','center','800');
  txt('Every gem is kept. Each run makes you stronger.',W/2,py+290*S,10.5,'#a9a2d8','center','700');cx.restore();
  const toMap=()=>{st='map';mapPage=Math.floor((SV.unlocked-1)/15)};escAction=toMap;
  if(stT>0.6){const bw=pw,by=py+ph+20*S;button(px,by,bw,54*S,'RETRY SECTOR '+R.level,()=>{initAudio();newRun(R.level)},{solid:1,def:1});
@@ -838,7 +851,7 @@ addEventListener('blur',()=>{keys={}});
 let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(resize,120)});document.addEventListener('fullscreenchange',()=>setTimeout(resize,50));
 // ---------- test hook: only active for a local file opened with #devtest
 const API={ts:1,god,get st(){return st},SV,get R(){return R},get LV(){return LV},get ship(){return ship},get boss(){return boss},get enemies(){return enemies},get mouse(){return mouse},
- newRun,openHangar,launchNext,get hangarTab(){return hangarTab},set hangarTab(v){hangarTab=v},bomb,gameOver,forceDie(){god.on=false;ship.inv=0;ship.shield=0;ship.hull=1;hurt()},get btns(){return btns},get OX(){return OX},get focus(){return focus},hurt,dropAt,dropW,curShots,addEnemy,get codexId(){return codexId},set codexId(v){codexId=v},set wSub(v){wSub=v},get pickups(){return pickups},spawnBoss,cost,wCost,SHOP,basePow,baseShots,priW,collectAll,get eb(){return eb},set eb(v){eb=v},get beams(){return beams},shipCircles};
+ newRun,openHangar,launchNext,get hangarTab(){return hangarTab},set hangarTab(v){hangarTab=v},bomb,gameOver,forceDie(){god.on=false;ship.inv=0;ship.shield=0;ship.hull=1;hurt()},get btns(){return btns},get OX(){return OX},get focus(){return focus},hurt,dropAt,dropW,curShots,addEnemy,get codexId(){return codexId},set codexId(v){codexId=v},set wSub(v){wSub=v},get pickups(){return pickups},spawnBoss,cost,wCost,SHOP,basePow,baseShots,priW,collectAll,get eb(){return eb},set eb(v){eb=v},get beams(){return beams},shipCircles,firePow,refPow,curPow,rateMul,PERKS,takePerk,levelClear};
 if(location.protocol==='file:'&&location.hash==='#devtest')window.__ns=API;
 if(typeof SV.qual==='number'&&SV.qual>=0){QUAL=SV.qual;qualAuto=false}
 resize();requestAnimationFrame(frame);
