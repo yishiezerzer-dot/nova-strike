@@ -539,7 +539,7 @@ function updBoss(dt,d){const b=boss;b.t+=dt;b.fl-=dt;b.hg=Math.max(b.hp,(b.hg??b
  if(!b.ph2&&b.hp<b.maxhp*(b.kind===6?0.66:0.5)){b.ph2=1;b.pt=-1.4;b.pat=0;b.sub=0;b.next=bossPats(b)[0];beams.length=0;for(const q of eb)burst(q.x,q.y,1,q.col,60,0.4,2);eb=[];flashA=Math.max(flashA,0.45);shake=Math.max(shake,14);hitStop=0.15;ring(b.x,b.y,'#ffffff',20,260,0.8,6);ring(b.x,b.y,bh(b.hue),10,200,1,10);banner('PHASE 2',b.name+' is enraged','#ff3b5c');SFX.alarm();if(!b.mini&&b.kind<=4){b.card={t:-1.6,nm:CARDS[b.kind]};later(1.5,()=>banner('SIGNATURE ATTACK',CARDS[b.kind]+'  //  survive 10s without a hit','#fff27a'))}return}
  if(b.card){const c=b.card;c.t+=dt;if(c.t<0)return;if(c.h0==null){c.h0=LV.hits;b.sub=0}
   if(c.t>10){const ok=LV.hits===c.h0;b.card=null;b.pt=-0.8;if(ok){for(let i=0;i<10;i++)dropAt(b.x+rnd(-30,30)*S,b.y+b.r,'gem',2);dropAt(b.x,b.y+b.r,'P');banner('ATTACK SURVIVED','No hits taken: bonus gems and power','#4dffb0');SFX.ach();ach('card')}return}
-  b.sub-=dt*Math.min(rate,1.5);if(b.sub>0)return;const bs=d.bs*0.85,k=b.kind;
+  b.sub-=dt*Math.min(rate,1.5)*(LV.n<=5?0.8:1);if(b.sub>0)return;const bs=d.bs*0.85,k=b.kind;
   if(k===0){b.sub=0.44;const lc=W/2+Math.sin(c.t*0.7)*W*0.24,gw=(LV.n<=5?78:66)*S;for(let x=10*S;x<W;x+=28*S)if(Math.abs(x-lc)>gw)eb.push({x,y:b.y+b.r*0.3,vx:0,vy:bs*0.7,r:5*S,col:'#ff5a7a'})}
   else if(k===1){b.sub=0.3;const o=(c.t*0.22)%1;for(let i=0;i<6;i++)eb.push({x:W*((i+o)%6+0.0)/6+W/12,y:safe.t+24*S,vx:0,vy:bs*0.62,r:5.5*S,col:'#7cff6b'})}
   else if(k===2){b.sub=0.7;c.n=(c.n||0)+1;const g0=c.t*0.4;for(let i=3;i<26;i++)ebullet(b.x,b.y,g0+i/26*TAU,bs*0.7,'#ffb13b',6);if(c.n%2===0)ebullet(b.x,b.y,aimA(b.x,b.y),bs*1.2,'#ffffff',5)}
