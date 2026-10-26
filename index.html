@@ -158,7 +158,7 @@ function proSweep(q){let n=0,g=0;for(const p of PRO)if(!SV.pro[p.id]&&p.ok()){SV
 const nextGoal=()=>PRO.filter(p=>!SV.pro[p.id]).sort((a,b)=>a.t-b.t)[0];
 const RELICS=[
  {id:'ablative',n:'Ablative Core',d:'The first hit each sector is absorbed, but heat jumps to max',col:'#8fd3ff',ic:'A'},
- {id:'cold',n:'Cold Fusion',d:'Heat never rises. Gems -25%',col:'#5fe8ff',ic:'C'},
+ {id:'cold',n:'Cold Fusion',d:'Heat rises half as fast and stops at half. Gems -25%',col:'#5fe8ff',ic:'C'},
  {id:'magpie',n:'Magpie',d:'Pickups fly to you from anywhere. A quarter of power-ups become gems',col:'#4dffb0',ic:'M'},
  {id:'scrap',n:'Scrap Bombs',d:'Bombs drop a stack per 15 bullets erased (max 2). One less bomb each sector',col:'#ff6a4d',ic:'S'},
  {id:'overheat',n:'Overheat Coil',d:'Up to +40% fire rate as heat rises. Hits no longer cool heat',col:'#ff9a3c',ic:'O'},
@@ -558,7 +558,7 @@ function update(dt){t+=dt;stT+=dt;shotCd-=dt;if(st==='title'||st==='map'||st==='
  if(st==='victory'){laserOn=false;wells.length=0;collectAll(dt);for(const p of parts)p.vy+=40*S*dt;return}
  if(st!=='play'||paused)return;
  if(hitStop>0){hitStop-=dt;return}
- music(dt);tickTimers(dt);{const tr=SV.cos.own[SV.cos.trail]?SV.cos.trail:'';if(tr&&ship&&!ship.dead){trailP.push(ship.x,ship.y+16*S*hullDef().hb);if(trailP.length>28)trailP.splice(0,2);if(tr==='tr_spark'&&QUAL>0&&parts.length<PCAP()*0.6&&Math.random()<0.6)parts.push({x:ship.x+rnd(-4,4)*S,y:ship.y+20*S,vx:rnd(-20,20)*S,vy:rnd(120,220)*S,l:0.35,m:0,col:FLAMEC(SV.cos.own[SV.cos.flame]?SV.cos.flame:'')[0],s:2.2*S})}}if(comms.length&&!toasts.length&&(comms[0].t+=dt)>4.6)comms.shift();if(ship&&!ship.dead&&ship.hull===1&&maxHull()>1&&(hbT-=dt)<0){hbT=0.85;tone(55,0.12,'sine',0.25,0.7);tone(50,0.12,'sine',0.18,0.7,0.16)}if(heat()>0.5)tipOnce('heat');R.heat=RL('cold')?0:Math.min(1,heat()+dt/60);const d=diff();
+ music(dt);tickTimers(dt);{const tr=SV.cos.own[SV.cos.trail]?SV.cos.trail:'';if(tr&&ship&&!ship.dead){trailP.push(ship.x,ship.y+16*S*hullDef().hb);if(trailP.length>28)trailP.splice(0,2);if(tr==='tr_spark'&&QUAL>0&&parts.length<PCAP()*0.6&&Math.random()<0.6)parts.push({x:ship.x+rnd(-4,4)*S,y:ship.y+20*S,vx:rnd(-20,20)*S,vy:rnd(120,220)*S,l:0.35,m:0,col:FLAMEC(SV.cos.own[SV.cos.flame]?SV.cos.flame:'')[0],s:2.2*S})}}if(comms.length&&!toasts.length&&(comms[0].t+=dt)>4.6)comms.shift();if(ship&&!ship.dead&&ship.hull===1&&maxHull()>1&&(hbT-=dt)<0){hbT=0.85;tone(55,0.12,'sine',0.25,0.7);tone(50,0.12,'sine',0.18,0.7,0.16)}if(heat()>0.5)tipOnce('heat');R.heat=RL('cold')?Math.min(0.5,heat()+dt/120):Math.min(1,heat()+dt/60);const d=diff();
  const kx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0),ky=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0);
  const slow=precise()?0.4:1,spd=hullDef().speed,maxSp=540*S*slow*spd,nrm=(kx&&ky)?0.7071:1,acc=1-Math.exp(-dt*(kx||ky?14:18));
  ship.kvx=lerp(ship.kvx,kx*nrm*maxSp,acc);ship.kvy=lerp(ship.kvy,ky*nrm*maxSp,acc);
