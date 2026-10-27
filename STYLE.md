@@ -27,12 +27,15 @@ Every colour the code sets is snapped to this ink set by `ink()` near the top of
 | Secondary text | warm grey | `#b3a993` |
 
 ## Readability rules (do not break)
-1. **Vermilion means "this hurts you".** Enemy bullets are a vermilion disc with an ink keyline, a bone core and a thin vermilion halo, drawn after the effects. Only hazards (lasers, warnings, mines, VEX) share the ink. Pickups, UI decoration and effects never use it at full strength.
-2. **Player shots recede.** They are pale-blue streaks at about 80% alpha, with no bloom.
+1. **Vermilion means "this hurts you".** Enemy bullets are a vermilion disc with a small bone core, a thin ink keyline just outside the disc, and a faint vermilion halo, drawn after the effects. Keep the vermilion band at least about 3 px wide on small bullets. Only hazards (lasers, warnings, mines) share the ink. Boss inks are steered off it (`offV`), and pickups, UI decoration and effects never use it at full strength.
+2. **Player shots recede.** They are deep-blue streaks at about 60% alpha, with no bloom. They must never be brighter than the bullets they cross.
 3. **Enemies are filled masses.** The body is a dark shade of the role ink, with a role-ink keyline and the offset plate. The silhouette carries the role; colour supports it.
 4. **The player is the brightest silhouette.** The bone hull has an ink keyline, a livery plate and a dark canopy.
 5. **Hitboxes match visuals.** Bullet discs are drawn at about 1.0 times the hit radius, and bodies stay within their collision circle.
 6. **Effects stay quiet.** Use few, large, flat shapes; no particle soup over bullets.
+7. **Hits jolt, they don't flash white.** A hit floods the body with its role ink and kicks the colour plate out of register (`PLATE` 5 px on enemies, 6 px on bosses) for the flash frames.
+8. **Nothing dims the playfield.** The vignette stays faint (edge alpha 0.18), set pieces print at 20% in play, and the boss-fight dialogue box sits at 60%.
+9. **Run the colour-blind check after visual changes.** `node tools/cbcheck.js` plays a boss fight in each act and measures bullet core and ring contrast against the background under normal vision and simulated protanopia, deuteranopia and tritanopia (`cbCheck` in the devtest hook). It covers the open playfield only, not HUD bands, toasts or dialogue. Thresholds are core 4.5:1 and ring 1.6:1 at the 10th percentile.
 
 ## Type
 - **Font:** one condensed grotesk stack, `Bahnschrift SemiCondensed`, then DIN Condensed, then Roboto Condensed (`FONT`).
@@ -44,6 +47,8 @@ Every colour the code sets is snapped to this ink set by `ink()` near the top of
 - **Icons** (`hexIcon`): a double-ring stamp with a letter.
 - **Rubber stamps** (`stampMark`, `stamps`): ISSUED on purchases, CLEARED or FLAWLESS on sector clear, LOST on game over. Use them for new "document" moments.
 - **Transitions:** a halftone dot screen that shrinks away diagonally (`drawWipe`).
+- **Sector map:** a printed star chart (`screenMap`). It has a framed coordinate grid, registration crosses and a vertical plate caption. Routes are plotted solid where cleared and dotted ahead, with dotted jump curves between acts. Node shapes encode the type: ring for a sector, diamond for a mini-boss, ringed disc for a boss, eight-point star for a finale. Cleared nodes carry a jade postmark tick, and the selected node gets a rotating reticle.
+- **Set pieces** (`buildSet`): flat printed compositions with offset plates and halftone shading. Act I is a ring station, Act II a cratered planetoid and belt, Act III a black hole with a banded disk, Act IV a megastructure arc over a moon, and the finale and Endless a constructivist sunburst over a horizon.
 - **Logo** (`mkLogo`): bone NOVA with an orange offset plate, a sky orbit swoosh and a mustard STRIKE ribbon with stars.
 
 ## Sound: "paper and press"
@@ -52,4 +57,5 @@ Every colour the code sets is snapped to this ink set by `ink()` near the top of
 - **Explosions:** sine thumps under lowpassed noise.
 - **UI:** stamp ticks (highpass noise). Purchases are a "ka-chunk".
 - **Master:** a gentle 6.5 kHz roll-off for tape warmth.
+- **Music bus:** a 2.6 kHz lowpass and a slow tape wow (a 0.32 Hz LFO, ±7 cents, on every music voice's detune). Hats and snares are bandpassed noise, not bright highpass hiss.
 - **Avoid:** square-wave bleeps and sawtooth blasts in new SFX.
