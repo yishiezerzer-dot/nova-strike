@@ -1,11 +1,14 @@
 // Colour-blind bullet contrast check for Nova Strike.
 // Opens the game in a phone-sized headless browser, plays into a boss fight in each act, and asks the game's devtest
 // hook (cbCheck) to measure enemy-bullet contrast against the background under normal vision and simulated
-// protanopia, deuteranopia and tritanopia, over the open playfield (HUD bands, toasts and dialogue excluded). Fails (exit code 1) if any mode drops below the thresholds below.
+// protanopia, deuteranopia and tritanopia, over the open playfield (HUD bands, toasts and dialogue excluded). Each fight is measured with the
+// standard bullets and again with the High-contrast bullets setting. It also drops one of each pickup token into the fight and checks the
+// token edge stands off the background and its colour stays clearly apart from bullet vermilion. Fails (exit code 1) below the thresholds.
 // Usage: node tools/cbcheck.js            (needs Playwright: PLAYWRIGHT=<path to playwright module> if not resolvable)
 const path = require('path');
 let pw; try { pw = require(process.env.PLAYWRIGHT || 'playwright') } catch (e) { pw = require(path.join(process.env.APPDATA || '', 'npm/node_modules/@playwright/cli/node_modules/playwright')) }
 const CORE_MIN = 4.5, RING_MIN = 1.6;   // per bullet: best of (fill, ink keyline) vs background. Core: WCAG text contrast; ring: must separate from what is behind it
+const PK_MIN = 3, PK_DE = 30;          // pickups: WCAG non-text 3:1 edge contrast; CIE76 colour distance from bullet vermilion
 const GAME = 'file:///' + path.resolve(__dirname, '..', 'index.html').split(path.sep).join('/') + '#devtest';
 (async () => {
   const browser = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
@@ -15,11 +18,16 @@ const GAME = 'file:///' + path.resolve(__dirname, '..', 'index.html').split(path
   for (const n of [5, 10, 15, 20, 25]) {
     await page.evaluate(n => { const a = window.__ns; a.newRun(n); let g = 0; while (a.st === 'perk' && g++ < 9) a.takePerk(a.R.offer[0]); a.god.on = true; a.enemies.length = 0; a.LV.waveIdx = a.LV.waveCount; a.spawnBoss() }, n);
     await page.waitForTimeout(6500);
-    await page.evaluate(() => { const a = window.__ns; a.toasts.length = 0; a.comms.length = 0; a.cbArm() }); await page.waitForTimeout(250);
-    const r = await page.evaluate(() => window.__ns.cbRes);
-    const row = ['normal', 'protan', 'deutan', 'tritan'].map(m => { const ok = r[m].core[0] >= CORE_MIN && r[m].ring[0] >= RING_MIN; if (!ok && r.n) fail++; return `${m} core ${r[m].core[0]} ring ${r[m].ring[0]}${ok ? '' : ' FAIL'}` });
-    console.log(`sector ${n} (${r.n} bullets): ` + row.join(' | '));
-    if (process.env.VERBOSE && r.worst) console.log('  worst [x,y,r,mine,ring rgb,bg luminance]:', JSON.stringify(r.worst.slice(0, 8)));
+    for (const hc of [0, 1]) {
+      await page.evaluate(hc => { const a = window.__ns; a.SV.hcb = hc; a.toasts.length = 0; a.comms.length = 0; a.pickups.length = 0; ['P', 'S', 'B', 'H', '+', 'W', 'R', 'gem', 'p'].forEach((t, i) => a.dropAt(40 + (i % 5) * (innerWidth - 80) / 4, innerHeight * (0.42 + 0.1 * Math.floor(i / 5)), t, 1, t === 'W' ? 'flame' : undefined)); for (const p of a.pickups) { p.vx = 0; p.vy = 0 } }, hc);
+      await page.waitForTimeout(40); await page.evaluate(() => window.__ns.cbArm()); await page.waitForTimeout(250);
+      const r = await page.evaluate(() => window.__ns.cbRes);
+      const row = ['normal', 'protan', 'deutan', 'tritan'].map(m => { const ok = r[m].core[0] >= CORE_MIN && r[m].ring[0] >= RING_MIN, pk = r[m].pk[1] >= PK_MIN && r[m].pkd[1] >= PK_DE; if (!ok && r.n) fail++; if (!pk && r.np) fail++; return `${m} core ${r[m].core[0]} ring ${r[m].ring[0]}${ok ? '' : ' FAIL'} pickups ${r[m].pk[1]}/${Math.round(r[m].pkd[1])}${pk ? '' : ' FAIL'}` });
+      console.log(`sector ${n}${hc ? ' high-contrast' : ''} (${r.n} bullets, ${r.np} pickups): ` + row.join(' | '));
+      if (process.env.VERBOSE && r.worst) console.log('  worst [x,y,r,mine,ring rgb,bg luminance]:', JSON.stringify(r.worst.slice(0, 8)));
+      if (process.env.VERBOSE && r.pkw) console.log('  pickups [type,contrast,distance]:', JSON.stringify(r.pkw));
+    }
+    await page.evaluate(() => { const a = window.__ns; a.SV.hcb = 0; a.pickups.length = 0 });
   }
   await browser.close();
   console.log(fail ? `FAILED (${fail})` : 'PASS'); process.exit(fail ? 1 : 0);
